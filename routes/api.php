@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\ProductController;
 use Illuminate\Http\Request;
@@ -26,4 +27,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('products/{id}/ar-model', [ProductController::class, 'uploadARModel']);
     Route::get('ar-products', [ProductController::class, 'getARProducts']);
     Route::get('products/category/{categoryId}', [ProductController::class, 'getByCategory']);
+
+
+
+    // Cart routes
+
+        Route::get('cart', [CartController::class, 'index']);
+        Route::post('cart/add', [CartController::class, 'addToCart']);
+        Route::put('cart/{id}', [CartController::class, 'updateQuantity']);
+        Route::delete('cart/{id}', [CartController::class, 'removeItem']);
+        Route::delete('cart', [CartController::class, 'clearCart']);
+        Route::get('cart/count', [CartController::class, 'getCartCount']);
+
 });

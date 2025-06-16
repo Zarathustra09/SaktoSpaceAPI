@@ -22,8 +22,6 @@ class Product extends Model
         'category_id',
         'image',
         'ar_model_url',
-        'ar_scale',
-        'ar_placement_type'
     ];
 
     /**

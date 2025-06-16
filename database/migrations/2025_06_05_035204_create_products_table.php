@@ -20,8 +20,6 @@
                     $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
                     $table->string('image')->nullable();
                     $table->string('ar_model_url')->nullable();
-                    $table->json('ar_scale')->nullable();
-                    $table->string('ar_placement_type')->nullable()->default('horizontal');
                     $table->timestamps();
                 });
             }
