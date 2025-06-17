@@ -14,14 +14,13 @@
                     Schema::create('payments', function (Blueprint $table) {
                         $table->id();
                         $table->foreignId('user_id')->constrained()->onDelete('cascade');
-                        $table->foreignId('order_id')->nullable()->constrained()->onDelete('set null');
                         $table->decimal('amount', 10, 2);
                         $table->string('payment_method');
                         $table->string('transaction_id');
                         $table->string('status')->default('pending');
                         $table->json('purchased_items');
-                        $table->json('billing_address')->nullable();
-                        $table->json('shipping_address')->nullable();
+                        $table->string('billing_address')->nullable();
+                        $table->string('shipping_address')->nullable();
                         $table->timestamp('payment_date');
                         $table->timestamps();
                     });

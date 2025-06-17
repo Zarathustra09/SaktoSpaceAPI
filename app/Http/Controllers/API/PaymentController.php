@@ -21,10 +21,11 @@
          */
 public function processPayment(Request $request)
        {
+           // In app/Http/Controllers/API/PaymentController.php
            $validator = Validator::make($request->all(), [
                'payment_method' => 'required|string',
-               'billing_address' => 'required|array',
-               'shipping_address' => 'required|array',
+               'billing_address' => 'required|string',
+               'shipping_address' => 'required|string',
            ]);
 
            if ($validator->fails()) {

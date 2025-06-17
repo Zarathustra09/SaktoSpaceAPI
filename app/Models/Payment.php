@@ -16,7 +16,6 @@ class Payment extends Model
      */
     protected $fillable = [
         'user_id',
-        'order_id',
         'amount',
         'payment_method',
         'transaction_id',
@@ -32,14 +31,12 @@ class Payment extends Model
      *
      * @var array<string, string>
      */
+// In app/Models/Payment.php
     protected $casts = [
         'amount' => 'decimal:2',
         'purchased_items' => 'array',
-        'billing_address' => 'array',
-        'shipping_address' => 'array',
         'payment_date' => 'datetime',
     ];
-
     /**
      * Get the user who made the payment.
      */
