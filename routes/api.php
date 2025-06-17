@@ -33,4 +33,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('cart', [CartController::class, 'clearCart']);
         Route::get('cart/count', [CartController::class, 'getCartCount']);
 
+
+    // Payment Routes
+    //Process payment from cart
+    Route::post('/payment/process', [App\Http\Controllers\API\PaymentController::class, 'processPayment']);
+    Route::get('/payment/{paymentId}', [App\Http\Controllers\API\PaymentController::class, 'getPayment']);
+    Route::get('/payments/history', [App\Http\Controllers\API\PaymentController::class, 'getPaymentHistory']);
+
 });
