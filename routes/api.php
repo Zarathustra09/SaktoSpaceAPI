@@ -24,14 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Product routes
     Route::apiResource('products', ProductController::class);
-    Route::post('products/{id}/ar-model', [ProductController::class, 'uploadARModel']);
-    Route::get('ar-products', [ProductController::class, 'getARProducts']);
-    Route::get('products/category/{categoryId}', [ProductController::class, 'getByCategory']);
-
-
 
     // Cart routes
-
         Route::get('cart', [CartController::class, 'index']);
         Route::post('cart/add', [CartController::class, 'addToCart']);
         Route::put('cart/{id}', [CartController::class, 'updateQuantity']);
