@@ -330,4 +330,51 @@
                     'data' => $products
                 ]);
             }
+            
+            public function search(Request $request)
+            {
+                $validator = Validator::make($request->all(), [
+                    'query' => 'required|string|min:1',
+                    'category_id' => 'nullable|exists:categories,id',
+                    'limit' => 'nullable|integer|min:1|max:100'
+                ]);
+
+                if ($validator->fails()) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => $validator->errors()
+                    ], 422);
+                }
+
+                $query = $request->input('query');
+                $categoryId = $request->input('category_id');
+                $limit = $request->input('limit', 20);
+
+                $products = Product::with('category')
+                    ->when($categoryId, function ($q) use ($categoryId) {
+                        return $q->where('category_id', $categoryId);
+                    })
+                    ->where(function ($q) use ($query) {
+                        $q->where('name', 'LIKE', "%{$query}%")
+                            ->orWhere('description', 'LIKE', "%{$query}%");
+                    })
+                    ->orderByRaw("
+            CASE
+                WHEN name LIKE ? THEN 1
+                WHEN name LIKE ? THEN 2
+                WHEN description LIKE ? THEN 3
+                ELSE 4
+            END
+        ", ["{$query}%", "%{$query}%", "%{$query}%"])
+                    ->limit($limit)
+                    ->get();
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $products,
+                    'query' => $query,
+                    'category_id' => $categoryId,
+                    'total_results' => $products->count()
+                ]);
+            }
         }

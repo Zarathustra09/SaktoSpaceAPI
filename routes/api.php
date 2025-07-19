@@ -24,7 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('categories/type/{type}', [CategoryController::class, 'getByType']);
 
     // Product routes
+    Route::get('products/search', [ProductController::class, 'search']);
     Route::apiResource('products', ProductController::class);
+
 
     // Cart routes
         Route::get('cart', [CartController::class, 'index']);
