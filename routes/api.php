@@ -43,4 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payment/{paymentId}', [App\Http\Controllers\API\PaymentController::class, 'getPayment']);
     Route::get('/payments/history', [App\Http\Controllers\API\PaymentController::class, 'getPaymentHistory']);
 
+    //profile routes
+    Route::get('profile', [App\Http\Controllers\API\ProfileController::class, 'show']);
+    Route::put('profile', [App\Http\Controllers\API\ProfileController::class, 'update']);
+    Route::post('profile/image', [App\Http\Controllers\API\ProfileController::class, 'uploadProfileImage']);
+    Route::delete('profile/image', [App\Http\Controllers\API\ProfileController::class, 'resetProfileImage']);
+    Route::delete('profile', [App\Http\Controllers\API\ProfileController::class, 'destroy']);
 });
