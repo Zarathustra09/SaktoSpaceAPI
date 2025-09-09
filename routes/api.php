@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\Api\OrdersController;
 use App\Http\Controllers\API\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -49,4 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('profile/image', [App\Http\Controllers\API\ProfileController::class, 'uploadProfileImage']);
     Route::delete('profile/image', [App\Http\Controllers\API\ProfileController::class, 'resetProfileImage']);
     Route::delete('profile', [App\Http\Controllers\API\ProfileController::class, 'destroy']);
+
+     Route::get('orders', [OrdersController::class, 'index']);
+     Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
+     Route::get('orders/{orderId}', [OrdersController::class, 'show']);
 });
