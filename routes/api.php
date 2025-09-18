@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\OrdersController;
 use App\Http\Controllers\API\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,4 +44,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payment/{paymentId}', [App\Http\Controllers\API\PaymentController::class, 'getPayment']);
     Route::get('/payments/history', [App\Http\Controllers\API\PaymentController::class, 'getPaymentHistory']);
 
+    //profile routes
+    Route::get('profile', [App\Http\Controllers\API\ProfileController::class, 'show']);
+    Route::put('profile', [App\Http\Controllers\API\ProfileController::class, 'update']);
+    Route::post('profile/image', [App\Http\Controllers\API\ProfileController::class, 'uploadProfileImage']);
+    Route::delete('profile/image', [App\Http\Controllers\API\ProfileController::class, 'resetProfileImage']);
+    Route::delete('profile', [App\Http\Controllers\API\ProfileController::class, 'destroy']);
+
+     Route::get('orders', [OrdersController::class, 'index']);
+     Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
+     Route::get('orders/{orderId}', [OrdersController::class, 'show']);
 });

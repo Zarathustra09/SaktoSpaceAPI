@@ -39,9 +39,9 @@
                         <td>{{ $product->category ? $product->category->name : 'N/A' }}</td>
                         <td>
                             @if($product->ar_model_url)
-                                <span class="badge badge-success">Available</span>
+                                <span class="badge bg-success">Available</span>
                             @else
-                                <span class="badge badge-secondary">None</span>
+                                <span class="badge bg-secondary">None</span>
                             @endif
                         </td>
                         <td>{{ $product->created_at->format('M d, Y') }}</td>
