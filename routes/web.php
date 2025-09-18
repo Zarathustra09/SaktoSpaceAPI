@@ -11,11 +11,9 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
-Auth::routes();
-
-
-Route::get('/home', [HomeController::class, 'index'])->name('home');
-
-Route::resource('categories', CategoryController::class)->except(['create', 'edit']);
-Route::resource('products', ProductController::class)->except(['create', 'edit']);
-Route::resource('payments', PaymentController::class)->only(['index', 'show', 'update']);
+Route::middleware(['auth', 'role:Admin'])->group(function () {
+    Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::resource('categories', CategoryController::class)->except(['create', 'edit']);
+    Route::resource('products', ProductController::class)->except(['create', 'edit']);
+    Route::resource('payments', PaymentController::class)->only(['index', 'show', 'update']);
+});
