@@ -16,15 +16,21 @@
              *
              * @return \Illuminate\Http\JsonResponse
              */
-            public function index()
-            {
-                $products = Product::with('category')->get();
+              public function index(Request $request)
+              {
+                  $categoryId = $request->query('category_id');
 
-                return response()->json([
-                    'success' => true,
-                    'data' => $products
-                ]);
-            }
+                  $products = Product::with('category')
+                      ->when($categoryId, function ($query) use ($categoryId) {
+                          $query->where('category_id', $categoryId);
+                      })
+                      ->get();
+
+                  return response()->json([
+                      'success' => true,
+                      'data' => $products
+                  ]);
+              }
 
             /**
              * Store a newly created product.
