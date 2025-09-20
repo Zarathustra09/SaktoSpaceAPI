@@ -13,6 +13,8 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
+Route::auth(['register' => false]);
+
 Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 
