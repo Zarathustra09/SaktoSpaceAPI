@@ -37,6 +37,13 @@
                     <span class="align-middle">Users</span>
                 </a>
             </li>
+
+         <li class="sidebar-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+             <a class="sidebar-link" href="{{ route('admin.users.index') }}">
+                 <i class="align-middle" data-feather="shield"></i>
+                 <span class="align-middle">Role Management</span>
+             </a>
+         </li>
         </ul>
     </div>
 </nav>

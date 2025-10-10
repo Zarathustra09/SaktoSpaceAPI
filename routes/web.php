@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\CategoryController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Admin\UserAdminController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -28,4 +29,11 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::post('/profile/upload-image', [ProfileController::class, 'uploadProfileImage'])->name('profile.uploadImage');
     Route::post('/profile/reset-image', [ProfileController::class, 'resetProfileImage'])->name('profile.resetImage');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Admin user access management (moved off /users prefix to avoid conflicts)
+    Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        Route::get('/', [UserAdminController::class, 'index'])->name('index');
+        Route::post('{user}/promote', [UserAdminController::class, 'promote'])->name('promote');
+        Route::post('{user}/demote', [UserAdminController::class, 'demote'])->name('demote');
+    });
 });
