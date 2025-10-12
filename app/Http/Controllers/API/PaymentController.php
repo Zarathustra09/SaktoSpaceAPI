@@ -19,7 +19,7 @@
          * @param Request $request
          * @return \Illuminate\Http\JsonResponse
          */
-public function processPayment(Request $request)
+        public function processPayment(Request $request)
        {
            // In app/Http/Controllers/API/PaymentController.php
            $validator = Validator::make($request->all(), [
@@ -165,5 +165,113 @@ public function processPayment(Request $request)
                 'success' => true,
                 'data' => $payments
             ]);
+        }
+
+        /**
+         * Process direct payment for a product without cart
+         *
+         * @param Request $request
+         * @return \Illuminate\Http\JsonResponse
+         */
+        public function processDirectPayment(Request $request)
+        {
+            $validator = Validator::make($request->all(), [
+                'product_id' => 'required|exists:products,id',
+                'quantity' => 'required|integer|min:1',
+                'payment_method' => 'required|string',
+                'billing_address' => 'required|string',
+                'shipping_address' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            try {
+                DB::beginTransaction();
+
+                $product = Product::find($request->product_id);
+
+                if (!$product) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Product not found'
+                    ], 404);
+                }
+
+                // Check if sufficient stock is available
+                if ($product->stock < $request->quantity) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Insufficient stock for product: {$product->name}. Available: {$product->stock}"
+                    ], 400);
+                }
+
+                // Generate a random transaction ID
+                $transactionId = 'SKTO-' . mt_rand(100000000, 999999999);
+
+                // Calculate total amount
+                $totalAmount = $product->price * $request->quantity;
+
+                // Create purchased item data
+                $purchasedItem = [
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'quantity' => $request->quantity,
+                    'subtotal' => $totalAmount,
+                    'category_id' => $product->category_id,
+                    'purchased_at' => now()->toDateTimeString(),
+                ];
+
+                // Create the payment record
+                $payment = Payment::create([
+                    'user_id' => Auth::id(),
+                    'order_id' => $request->order_id ?? null,
+                    'amount' => $totalAmount,
+                    'payment_method' => $request->payment_method,
+                    'transaction_id' => $transactionId,
+                    'status' => $request->status ?? 'completed',
+                    'purchased_items' => [$purchasedItem],
+                    'billing_address' => $request->billing_address,
+                    'shipping_address' => $request->shipping_address,
+                    'payment_date' => now(),
+                ]);
+
+                // Decrease product stock
+                $product->stock -= $request->quantity;
+                $product->save();
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Direct payment processed successfully',
+                    'data' => [
+                        'payment_id' => $payment->id,
+                        'transaction_id' => $transactionId,
+                        'amount' => $payment->amount,
+                        'product' => [
+                            'name' => $product->name,
+                            'quantity' => $request->quantity,
+                            'unit_price' => $product->price,
+                            'total_price' => $totalAmount
+                        ],
+                        'purchased_items' => $payment->purchased_items
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Direct payment processing failed',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
         }
     }
