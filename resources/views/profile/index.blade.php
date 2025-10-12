@@ -68,10 +68,6 @@
                             <span data-feather="mail" class="feather-sm me-1"></span>
                             Email: <a href="#">{{ auth()->user()->email }}</a>
                         </li>
-                        <li class="mb-1">
-                            <span data-feather="user" class="feather-sm me-1"></span>
-                            Position: <a href="#">{{ auth()->user()->role_id == 0 ? 'Employee' : 'Admin' }}</a>
-                        </li>
                     </ul>
                 </div>
                 <hr class="my-0" />
@@ -102,10 +98,6 @@
                         <div class="mb-3">
                             <label class="form-label">Confirm Password</label>
                             <input type="password" class="form-control" name="password_confirmation" placeholder="Confirm New Password">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <input type="text" class="form-control" value="{{ auth()->user()->role_id == 0 ? 'Employee' : 'Admin' }}" readonly>
                         </div>
                         <div class="text-center mt-3">
                             <button type="submit" class="btn btn-primary">Save</button>
