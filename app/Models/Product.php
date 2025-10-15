@@ -52,4 +52,16 @@ class Product extends Model
     {
         return $this->ratings()->avg('rating');
     }
+
+    /**
+     * Get rating breakdown by star count
+     */
+    public function getRatingBreakdown()
+    {
+        $breakdown = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $breakdown[$i] = $this->ratings()->where('rating', $i)->count();
+        }
+        return $breakdown;
+    }
 }

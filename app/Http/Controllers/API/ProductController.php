@@ -120,7 +120,7 @@
              */
             public function show($id)
             {
-                $product = Product::with('category')->find($id);
+                $product = Product::with(['category'])->find($id);
 
                 if (!$product) {
                     return response()->json([
@@ -128,6 +128,11 @@
                         'message' => 'Product not found'
                     ], 404);
                 }
+
+                // Add rating information
+                $product->average_rating = $product->averageRating();
+                $product->total_ratings = $product->ratings()->count();
+                $product->rating_breakdown = $product->getRatingBreakdown();
 
                 return response()->json([
                     'success' => true,
