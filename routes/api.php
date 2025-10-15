@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payment/process', [App\Http\Controllers\API\PaymentController::class, 'processPayment']);
     Route::get('/payment/{paymentId}', [App\Http\Controllers\API\PaymentController::class, 'getPayment']);
     Route::get('/payments/history', [App\Http\Controllers\API\PaymentController::class, 'getPaymentHistory']);
+    Route::post('/payment/direct', [App\Http\Controllers\API\PaymentController::class, 'processDirectPayment']);
+
 
     //profile routes
     Route::get('profile', [App\Http\Controllers\API\ProfileController::class, 'show']);
