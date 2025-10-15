@@ -1,0 +1,17 @@
+<?php
+
+return [
+    'credentials' => [
+        'type' => 'service_account',
+        'project_id' => 'saktospace',
+        'private_key_id' => '94f123661e5fac92dc04c23df46e4bbee1e84623',
+        'private_key' => '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCvqxvdFb4u+TB3\ny4uta7dSfTRnXNyxmNZdW3nH34H+VEV9Piuo6bMmrgYmwYy4vLY99wyX1ShMI1ux\nixuSOhAgvyglUsWhlOAtaHfNRbHIeO7i1K6+rLJ8rInd3d9MnWaVTLFrnKT4QStd\nGRDeUaseeJPzY0oQCJjIs2bAgw3dCOZvt3f/ZzQ/GMdsZYzcnm+lPgsMUyPlCCY6\nYUv79x11MzK87TEPdW9SQC06dfNle89yxuVbxHdBDhVETETezLFSQ907l9TmSi8b\npv04dgFkZP/8D9dF/UeTlTbIwkaOZeHm/8PYt6x2DCalkFJyVsRfkyQEAG1tAm11\nUhykSPgHAgMBAAECggEAEH0OEeCPLleJzhfwr1sGvpsthqCRWNyD2m8FbW/naRjX\ndBvLlOcCpf6VnNOnKSJFaAGLt0CoFj8HX0Qzihq7FgFhrxP0cU5inSbkf9CRd5Cq\nU4Fen/UTxJIC8Sx4xiplmfcar1AceyGa0WBsVE6Nsj/jgZsJm5tC9yunpfaaUx6L\nH7cyYQNkXPo2/VNvyEMVOPMWtKu2V6uMfbzKjGdlYjoTXXaMGv7Y2FPx3XAiXwPf\nhsuNcpVgUGd63cmMcr1sg4FBi9mtCVmQfO+HeNiRWg4xrGrOk26KQy7I83+n+D4l\nyMbva5vdQksBK/FEHSTp6jCQPPFAQ5LR6W8pTW5xWQKBgQDYP/j7Uym30w42VZzR\nC+uq7SB9Sz5J6uFOT0jlnD4vuBpIJQgsNV73XlXGWx61o+7215hti2nDKD99Q03v\n43Isqli8yu8+3hTzPG2Ud/Rh0EtX9b4qM3b9P9xJkzU6OyyatjVyMUI9kTqRpDjE\nu2BI5Lli5zoe/KbF2vKjfQeoLQKBgQDP9YA5hzxnrF1eT5szXfvX8/jYe4oZ82oU\nqqT+X9dZ0v5VAmc/KtnOfcRF545Q8YHafAHnO3uNMc97Pnol5KlHiFMOyCs7waJz\nZIEyiPR1y2cMpywFjkuwuT1i8FvnjHENLAQdujMEyCAmwcRagD6GxTMP8kWpPKIs\nrqD69sYtgwKBgHjesPURE7Vas4vtKFy0FAKSzeEaaHN6ZHqX2D/2p8+WUKJYiIvl\nPPJ4+OqIzc5rFctE0D8SeIgLfAkw0GQwNgX/JOBJcZYrHXyjHwCoV6FAgoxkn+kI\noQ6GXkOFk2+72X+ULqVoIQU2ooz7RHu52+SCa5h7c8IUJ8dZTNvSq6/1AoGBALD6\nv5s16kRYvkUq/mwiydepO9gQmyEmtNrNtwj8y6sYE3aJSxDJCP/grI7JV6avQdGM\nw5nkV2t8PpUmQJHLHf1QmU71L0X1rqkBmapGP7WX2yU7iA1aYjQOEZ4H7E8MiJGr\nKf2anxysrCAPu2lBxvSvEpu5lWtHvMTGAR5Tsai9AoGAFuJUvle7p3hFSci6GVWL\notsw+f63VmqiLKSOtXSw1ok+WORdis6Ypsv9PnnKC/BbrxsxbQjbY3Wn1Cv9l0kJ\nQ/A/ZdwBnfAYUyNo7tbJ1PRqbrNY2hOHx2rNWgJVVlWd4RG+7YO1QJnurM7aVMLE\nmD+vqvkVAZ/0hTY4f2iqbjs=\n-----END PRIVATE KEY-----\n',
+        'client_email' => 'firebase-adminsdk-fbsvc@saktospace.iam.gserviceaccount.com',
+        'client_id' => '103715476565983588419',
+        'auth_uri' => 'https://accounts.google.com/o/oauth2/auth',
+        'token_uri' => 'https://oauth2.googleapis.com/token',
+        'auth_provider_x509_cert_url' => 'https://www.googleapis.com/oauth2/v1/certs',
+        'client_x509_cert_url' => 'https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40saktospace.iam.gserviceaccount.com',
+        'universe_domain' => 'googleapis.com',
+    ],
+];

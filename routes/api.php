@@ -57,3 +57,57 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
      Route::get('orders/{orderId}', [OrdersController::class, 'show']);
 });
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/device-token', function (Request $request) {
+        $data = $request->validate([
+            'token' => 'required|string',
+            'device_type' => 'nullable|string|in:android,ios,web',
+            'timestamp' => 'nullable|date'
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $timestamp = isset($data['timestamp']) ? \Carbon\Carbon::parse($data['timestamp']) : now();
+        $user->addDeviceToken($data['token'], $data['device_type'] ?? null, $timestamp);
+
+        return response()->json(['success' => true, 'message' => 'Device token registered']);
+    });
+
+    Route::delete('/device-token', function (Request $request) {
+        $data = $request->validate([
+            'token' => 'required|string'
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $user->removeDeviceToken($data['token']);
+
+        return response()->json(['success' => true, 'message' => 'Device token removed']);
+    });
+
+    Route::post('/device-token/refresh', function (Request $request) {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $staleTokensRemoved = $user->removeStaleTokens();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token refresh completed',
+            'stale_tokens_removed' => $staleTokensRemoved
+        ]);
+    });
+
+
+});
