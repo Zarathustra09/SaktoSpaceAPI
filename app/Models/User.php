@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -65,5 +66,48 @@ class User extends Authenticatable
     public function ratings()
     {
         return $this->hasMany(Rating::class);
+    }
+
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(UserDeviceToken::class);
+    }
+
+    public function addDeviceToken($token, $deviceType = null, $timestamp = null)
+    {
+        return $this->deviceTokens()->updateOrCreate(
+            ['token' => $token],
+            [
+                'device_type' => $deviceType,
+                'last_used_at' => $timestamp ?? now(),
+                'registered_at' => now()
+            ]
+        );
+    }
+
+    public function removeDeviceToken($token)
+    {
+        return $this->deviceTokens()->where('token', $token)->delete();
+    }
+
+    public function updateTokenTimestamp($token)
+    {
+        return $this->deviceTokens()
+            ->where('token', $token)
+            ->update(['last_used_at' => now()]);
+    }
+
+    public function removeStaleTokens()
+    {
+        $cutoffDate = now()->subDays(30);
+        return $this->deviceTokens()->where('last_used_at', '<', $cutoffDate)->delete();
+    }
+
+    public function getActiveTokens()
+    {
+        return $this->deviceTokens()
+            ->where('last_used_at', '>=', now()->subDays(30))
+            ->pluck('token')
+            ->toArray();
     }
 }
