@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('token');
             $table->string('device_type')->nullable();
-            $table->timestamp('last_used_at')->nullable()->after('device_type');
-            $table->timestamp('registered_at')->nullable()->after('last_used_at');
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('registered_at')->nullable();
             $table->timestamps();
 
             $table->unique(['user_id', 'token']);
