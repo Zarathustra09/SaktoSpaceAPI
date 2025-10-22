@@ -37,3 +37,8 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
         Route::post('{user}/demote', [UserAdminController::class, 'demote'])->name('demote');
     });
 });
+
+Route::get('/password-updated', function () {
+    return view('auth.password-updated');
+})->name('password.updated');
+

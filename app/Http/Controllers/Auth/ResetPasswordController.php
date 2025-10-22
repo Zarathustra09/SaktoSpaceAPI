@@ -66,7 +66,7 @@ class ResetPasswordController extends Controller
             return redirect($this->redirectPath())->with('status', trans($response));
         }
 
-        // Non-admin: do not authenticate, redirect to password-updated page
-        return redirect('/password-updated')->with('status', trans($response));
+        // Non-admin: do not authenticate, redirect to named route 'password.updated'
+        return redirect()->route('password.updated')->with('status', trans($response));
     }
 }

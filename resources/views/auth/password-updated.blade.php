@@ -10,7 +10,7 @@
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link rel="shortcut icon" href="{{ asset('img/icons/icon-48x48.png') }}" />
-    <title>{{env('APP_NAME')}} - Reset Password</title>
+    <title>{{env('APP_NAME')}} - Password Updated</title>
 
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -52,6 +52,8 @@
             background: white;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+            text-align: center;
         }
 
         .welcome-container {
@@ -66,11 +68,6 @@
             text-align: center;
         }
 
-        .header {
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
         .header h1 {
             font-size: 24px;
             font-weight: 600;
@@ -78,54 +75,37 @@
             margin-bottom: 24px;
         }
 
-        .alert {
-            padding: 16px;
-            margin-bottom: 20px;
-            border-radius: 8px;
+        .success-icon {
+            font-size: 48px;
+            color: #4caf50;
+            margin-bottom: 24px;
         }
 
-        .alert-success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
+        .message {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 32px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 16px;
-            border: none;
-            background: var(--background-gray);
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-
-        .form-control:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px var(--primary-blue);
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 12px;
+        .btn-login {
+            display: inline-block;
+            padding: 12px 24px;
             background: var(--primary-blue);
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 500;
+            text-decoration: none;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
-        .btn-primary:hover {
+        .btn-login:hover {
             background: #1976d2;
             transform: translateY(-1px);
+            color: white;
+            text-decoration: none;
         }
 
         .brand-footer {
@@ -155,16 +135,6 @@
             opacity: 0.9;
         }
 
-        .invalid-feedback {
-            color: #dc3545;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-
-        .is-invalid {
-            box-shadow: 0 0 0 2px #dc3545;
-        }
-
         @media (max-width: 768px) {
             .container {
                 flex-direction: column-reverse;
@@ -182,53 +152,28 @@
 <div class="container">
     <div class="form-container">
         <div class="header">
-            <h1>{{ __('Reset Password') }}</h1>
+            <h1>Password Updated</h1>
         </div>
 
-        @if (session('status'))
-            <div class="alert alert-success" role="alert">
-                {{ session('status') }}
-            </div>
-        @endif
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
 
-        <form method="POST" action="{{ route('password.email') }}">
-            @csrf
-
-            <div class="form-group">
-                <input
-                    id="email"
-                    type="email"
-                    class="form-control @error('email') is-invalid @enderror"
-                    name="email"
-                    value="{{ old('email') }}"
-                    placeholder="{{ __('Email Address') }}"
-                    required
-                    autocomplete="email"
-                    autofocus
-                >
-                @error('email')
-                    <div class="invalid-feedback">
-                        {{ $message }}
-                    </div>
-                @enderror
-            </div>
-
-            <button type="submit" class="btn-primary">
-                {{ __('Send Password Reset Link') }}
-            </button>
-        </form>
-
+        <div class="message">
+            Your password has been successfully updated. You can now log in with your new password.
+        </div>
         <div class="brand-footer">
             <div class="brand-name">{{env('APP_NAME')}}</div>
         </div>
     </div>
 
     <div class="welcome-container">
-        <h2>Forgot Password?</h2>
-        <p>Enter your email address and we'll send you a link to reset your password.</p>
+        <h2>Success!</h2>
+        <p>Your password has been reset successfully.</p>
     </div>
 </div>
 
 <script src="{{ asset('js/app.js') }}"></script>
 </body>
 </html>
+
