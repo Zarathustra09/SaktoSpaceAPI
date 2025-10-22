@@ -29,3 +29,4 @@ yarn-error.log
 SaktoSpaceAPI.zip
 composer.phar
 .htaccess
+/config/firebase.php
