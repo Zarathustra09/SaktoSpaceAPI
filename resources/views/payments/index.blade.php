@@ -13,6 +13,9 @@
                     <option value="failed">Failed</option>
                     <option value="refunded">Refunded</option>
                 </select>
+                <button id="exportExcel" class="btn btn-success">
+                    📊 Export Excel
+                </button>
             </div>
         </div>
         <div class="card-body">
@@ -103,6 +106,14 @@
             } else {
                 table.column(4).search(filterValue).draw();
             }
+        });
+
+        // Export respecting current status filter
+        $('#exportExcel').on('click', function() {
+            const status = $('#statusFilter').val();
+            const base = '{{ route('payments.export') }}';
+            const url = status ? `${base}?status=${encodeURIComponent(status)}` : base;
+            window.location.href = url;
         });
     });
 

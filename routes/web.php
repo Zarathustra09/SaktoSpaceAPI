@@ -21,6 +21,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
 
     Route::resource('categories', CategoryController::class)->except(['create', 'edit']);
     Route::resource('products', ProductController::class)->except(['create', 'edit']);
+    Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
     Route::resource('payments', PaymentController::class)->only(['index', 'show', 'update']);
     Route::resource('users', UserController::class)->only(['index', 'show']);
 
@@ -41,4 +42,3 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
 Route::get('/password-updated', function () {
     return view('auth.password-updated');
 })->name('password.updated');
-

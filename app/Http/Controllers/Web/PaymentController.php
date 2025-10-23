@@ -16,6 +16,7 @@ use Kreait\Firebase\Messaging\Notification;
 use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\ApnsConfig;
 use Kreait\Firebase\Exception\MessagingException;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PaymentController extends Controller
 {
@@ -70,6 +71,85 @@ class PaymentController extends Controller
             'message' => 'Payment status updated successfully.',
             'data' => $payment
         ]);
+    }
+
+    /**
+     * Export payments to Excel (respects optional ?status= filter).
+     */
+    public function export(Request $request)
+    {
+        $status = $request->query('status');
+
+        $query = Payment::with('user')->orderBy('payment_date', 'desc');
+        if (!empty($status)) {
+            $query->where('status', $status);
+        }
+        $payments = $query->get();
+
+        $export = new class($payments) implements
+            \Maatwebsite\Excel\Concerns\FromCollection,
+            \Maatwebsite\Excel\Concerns\WithHeadings,
+            \Maatwebsite\Excel\Concerns\WithMapping,
+            \Maatwebsite\Excel\Concerns\ShouldAutoSize,
+            \Maatwebsite\Excel\Concerns\WithStyles
+        {
+            private $rows;
+
+            public function __construct($rows)
+            {
+                $this->rows = $rows;
+            }
+
+            public function collection()
+            {
+                return $this->rows;
+            }
+
+            public function headings(): array
+            {
+                return [
+                    'Transaction ID',
+                    'User Name',
+                    'User Email',
+                    'Amount',
+                    'Payment Method',
+                    'Status',
+                    'Items Count',
+                    'Billing Address',
+                    'Shipping Address',
+                    'Payment Date',
+                    'Created At',
+                    'Updated At',
+                ];
+            }
+
+            public function map($payment): array
+            {
+                return [
+                    $payment->transaction_id,
+                    optional($payment->user)->name ?? 'N/A',
+                    optional($payment->user)->email ?? 'N/A',
+                    (string) $payment->amount,
+                    (string) $payment->payment_method,
+                    (string) $payment->status,
+                    is_array($payment->purchased_items) ? count($payment->purchased_items) : 0,
+                    (string) ($payment->billing_address ?? ''),
+                    (string) ($payment->shipping_address ?? ''),
+                    $payment->payment_date ? $payment->payment_date->format('Y-m-d H:i:s') : '',
+                    $payment->created_at ? $payment->created_at->format('Y-m-d H:i:s') : '',
+                    $payment->updated_at ? $payment->updated_at->format('Y-m-d H:i:s') : '',
+                ];
+            }
+
+            public function styles(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet)
+            {
+                return [1 => ['font' => ['bold' => true]]];
+            }
+        };
+
+        $filename = 'payments' . ($status ? "_{$status}" : '') . '_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+
+        return Excel::download($export, $filename);
     }
 
     /**
