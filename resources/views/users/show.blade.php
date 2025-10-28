@@ -47,7 +47,7 @@
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-6">
-                            <h4 class="text-primary">${{ number_format($payments->sum('amount'), 2) }}</h4>
+                            <h4 class="text-primary">₱{{ number_format($payments->sum('amount'), 2) }}</h4>
                             <small class="text-muted">Total Spent</small>
                         </div>
                         <div class="col-6">
@@ -109,7 +109,7 @@
                                         </code>
                                     </td>
                                     <td>
-                                        <span class="fw-bold text-success">${{ number_format($payment->amount, 2) }}</span>
+                                        <span class="fw-bold text-success">₱{{ number_format($payment->amount, 2) }}</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-info">{{ ucfirst($payment->payment_method) }}</span>
@@ -199,11 +199,11 @@
                                 <div>
                                     <strong style="color: #2c3e50;">${item.name}</strong>
                                     <br>
-                                    <small style="color: #6c757d;">Qty: ${item.quantity} × $${parseFloat(item.price).toFixed(2)}</small>
+                                    <small style="color: #6c757d;">Qty: ${item.quantity} × ₱${parseFloat(item.price).toFixed(2)}</small>
                                 </div>
                                 <div style="text-align: right;">
                                     <span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
-                                        $${parseFloat(item.subtotal).toFixed(2)}
+                                        ₱${parseFloat(item.subtotal).toFixed(2)}
                                     </span>
                                 </div>
                             </div>
@@ -240,7 +240,7 @@
                                 <div>
                                     <strong style="color: #34495e;">💰 Amount:</strong>
                                     <br>
-                                    <span style="font-size: 1.3em; font-weight: bold; color: #28a745;">$${parseFloat(payment.amount).toFixed(2)}</span>
+                                    <span style="font-size: 1.3em; font-weight: bold; color: #28a745;">₱${parseFloat(payment.amount).toFixed(2)}</span>
                                 </div>
                                 <div>
                                     <strong style="color: #34495e;">💳 Payment Method:</strong>

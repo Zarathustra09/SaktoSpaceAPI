@@ -44,7 +44,7 @@
                             @endif
                         </td>
                         <td>
-                            <span class="badge bg-info">${{ number_format($user->payments->sum('amount'), 2) }}</span>
+                            <span class="badge bg-info">₱{{ number_format($user->payments->sum('amount'), 2) }}</span>
                             <small class="text-muted">({{ $user->payments->count() }} transactions)</small>
                         </td>
                         <td>{{ $user->created_at->format('M d, Y') }}</td>
