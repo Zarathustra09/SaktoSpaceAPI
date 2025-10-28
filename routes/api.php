@@ -57,6 +57,8 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('orders', [OrdersController::class, 'index']);
      Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
      Route::get('orders/{orderId}', [OrdersController::class, 'show']);
+
+    Route::apiResource('ratings', App\Http\Controllers\API\RatingController::class);
 });
 
 
