@@ -34,7 +34,7 @@
                         </td>
                         <td>{{ $product->name }}</td>
                         <td>{{ Str::limit($product->description ?? 'N/A', 50) }}</td>
-                        <td>${{ number_format($product->price, 2) }}</td>
+                        <td>₱{{ number_format($product->price, 2) }}</td>
                         <td>{{ $product->stock }}</td>
                         <td>{{ $product->category ? $product->category->name : 'N/A' }}</td>
                         <td>
@@ -242,7 +242,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
                             <div>
                                 <strong style="color: #34495e;">💰 Price:</strong>
-                                <p style="margin: 5px 0; font-size: 1.2em; color: #27ae60; font-weight: bold;">$${parseFloat(product.price).toFixed(2)}</p>
+                                <p style="margin: 5px 0; font-size: 1.2em; color: #27ae60; font-weight: bold;">₱${parseFloat(product.price).toFixed(2)}</p>
                             </div>
                             <div>
                                 <strong style="color: #34495e;">📦 Stock:</strong>
