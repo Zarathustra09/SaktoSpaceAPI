@@ -51,7 +51,7 @@
                             <div class="card bg-warning text-white">
                                 <div class="card-body">
                                     <h5>Total Payments</h5>
-                                    <h2>${{ number_format($totalPayments, 2) }}</h2>
+                                    <h2>₱{{ number_format($totalPayments, 2) }}</h2>
                                 </div>
                             </div>
                         </div>
@@ -80,7 +80,7 @@
                                                 <tbody>
                                                     @foreach($recentPayments as $payment)
                                                         <tr>
-                                                            <td>${{ number_format($payment->amount, 2) }}</td>
+                                                            <td>₱{{ number_format($payment->amount, 2) }}</td>
                                                             <td>{{ ucfirst($payment->payment_method) }}</td>
                                                             <td>
                                                                 <span class="badge badge-{{ $payment->status === 'completed' ? 'success' : 'warning' }}">
