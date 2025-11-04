@@ -36,11 +36,11 @@ class HomeController extends Controller
         $totalProducts = Product::count();
         $totalCategories = Category::count();
 
-        // Get user's cart and items count - ensure proper counting
+        // Get user's cart and items count - handle JSON array structure
         $userCart = $user->cart;
         $cartItemsCount = 0;
         if ($userCart) {
-            // Use the relationship method to get count
+            // Use the items() method that returns a collection from JSON array
             $cartItemsCount = $userCart->items()->count();
         }
 

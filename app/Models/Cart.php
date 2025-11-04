@@ -22,4 +22,28 @@ class Cart extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get the items in the cart as a collection
+     */
+    public function items()
+    {
+        return collect($this->items ?? []);
+    }
+
+    /**
+     * Get the count of items in the cart
+     */
+    public function getItemsCountAttribute()
+    {
+        return $this->items() ? $this->items()->count() : 0;
+    }
+
+    /**
+     * Get total quantity of all items
+     */
+    public function getTotalQuantityAttribute()
+    {
+        return $this->items()->sum('quantity');
+    }
 }
