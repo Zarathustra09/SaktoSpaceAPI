@@ -36,9 +36,13 @@ class HomeController extends Controller
         $totalProducts = Product::count();
         $totalCategories = Category::count();
 
-        // Get user's cart and items count
+        // Get user's cart and items count - ensure proper counting
         $userCart = $user->cart;
-        $cartItemsCount = $userCart ? $userCart->items()->count() : 0;
+        $cartItemsCount = 0;
+        if ($userCart) {
+            // Use the relationship method to get count
+            $cartItemsCount = $userCart->items()->count();
+        }
 
         // ADMIN-WIDE: fetch all completed payments (normalize status) and materialize
         $completedPayments = Payment::whereRaw('LOWER(TRIM(status)) = ?', ['completed'])->get();
