@@ -35,7 +35,7 @@ class CategoryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:categories',
             'description' => 'nullable|string',
-            'type' => 'required|string|in:' . implode(',', Category::getTypes()),
+            'type' => 'required|string|max:255',
         ]);
 
         $category = Category::create($request->all());
@@ -54,7 +54,7 @@ class CategoryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'description' => 'nullable|string',
-            'type' => 'required|string|in:' . implode(',', Category::getTypes()),
+            'type' => 'required|string|max:255',
         ]);
 
         $category->update($request->all());

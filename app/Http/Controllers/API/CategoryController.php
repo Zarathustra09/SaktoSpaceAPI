@@ -35,7 +35,7 @@ class CategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:categories',
             'description' => 'nullable|string',
-            'type' => 'required|string|in:' . implode(',', Category::getTypes())
+            'type' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -97,7 +97,7 @@ class CategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255|unique:categories,name,' . $id,
             'description' => 'nullable|string',
-            'type' => 'sometimes|string|in:' . implode(',', Category::getTypes())
+            'type' => 'sometimes|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -158,10 +158,11 @@ class CategoryController extends Controller
      */
     public function getByType($type)
     {
-        if (!in_array($type, Category::getTypes())) {
+        $type = (string) $type;
+        if ($type === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid category type'
+                'message' => 'Type must be a non-empty string'
             ], 400);
         }
 
