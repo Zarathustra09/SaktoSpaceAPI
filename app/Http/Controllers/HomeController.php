@@ -150,24 +150,28 @@ class HomeController extends Controller
                     continue;
                 }
 
-                // Check if product exists in database
+                // Check if product exists in database - SKIP if not found
                 if (!in_array($productId, $existingProductIds)) {
-                    Log::warning('HomeController: Product ID not found in database', [
+                    Log::warning('HomeController: Product ID not found in database - SKIPPING', [
                         'payment_id' => $payment->id,
                         'missing_product_id' => $productId,
                         'item_name' => $item['name'] ?? 'no_name',
                         'existing_ids' => $existingProductIds
                     ]);
+                    // Skip this item instead of creating fallback
+                    continue;
                 }
 
                 $product = Product::with('category')->find($productId);
 
                 if (!$product) {
-                    Log::warning('HomeController: Product not found, creating fallback entry', [
+                    Log::warning('HomeController: Product not found in database query - SKIPPING', [
                         'payment_id' => $payment->id,
                         'product_id' => $productId,
-                        'fallback_name' => $item['name'] ?? 'Unknown Product'
+                        'item_name' => $item['name'] ?? 'no_name'
                     ]);
+                    // Skip this item instead of creating fallback
+                    continue;
                 }
 
                 $categoryName = $product && $product->category ? $product->category->name : 'Unknown';
@@ -183,22 +187,21 @@ class HomeController extends Controller
                         $purchasedProductsArray[$productId]['last_purchased'] = $payment->payment_date;
                     }
                 } else {
-                    // Use canonical product data (same as products.index) or fallback data
+                    // Only create entries for products that actually exist
                     $purchasedProductsArray[$productId] = [
                         'id' => $productId,
-                        'name' => $product?->name ?? ($item['name'] ?? 'Unknown Product'),
-                        'image' => $product?->image, // already a full /storage/... path
+                        'name' => $product->name,
+                        'image' => $product->image, // already a full /storage/... path
                         'category' => $categoryName,
                         'quantity' => $quantity,
                         'total_spent' => $totalSpent,
                         'last_purchased' => $payment->payment_date,
                     ];
 
-                    Log::info('HomeController: Created product entry', [
+                    Log::info('HomeController: Created product entry for existing product', [
                         'product_id' => $productId,
-                        'product_found' => $product ? 'yes' : 'no',
-                        'final_name' => $purchasedProductsArray[$productId]['name'],
-                        'final_category' => $purchasedProductsArray[$productId]['category']
+                        'product_name' => $product->name,
+                        'category' => $categoryName
                     ]);
                 }
 
@@ -208,6 +211,11 @@ class HomeController extends Controller
 
         // Convert array back to Collection for sorting
         $purchasedProducts = collect(array_values($purchasedProductsArray));
+
+        // Filter out "Unknown" category from category spending if no valid products contributed to it
+        $categorySpending = $categorySpending->reject(function($amount, $categoryName) {
+            return $categoryName === 'Unknown';
+        });
 
         // Log computed metrics summary
         Log::info('Admin Dashboard: computed metrics', [

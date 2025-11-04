@@ -5,9 +5,13 @@
         use App\Http\Controllers\Controller;
         use App\Models\Category;
         use App\Models\Product;
+        use App\Models\Payment;
+        use App\Models\Cart;
         use Illuminate\Http\Request;
         use Illuminate\Support\Facades\Storage;
         use Illuminate\Support\Facades\Validator;
+        use Illuminate\Support\Facades\Log;
+        use Illuminate\Support\Facades\DB;
 
         class ProductController extends Controller
         {
@@ -301,20 +305,143 @@
                     ], 404);
                 }
 
-                // Delete associated AR model if exists
-                if ($product->ar_model_url) {
-                    $path = str_replace('/storage/', '/public/', $product->ar_model_url);
-                    if (Storage::exists($path)) {
-                        Storage::delete($path);
+                DB::beginTransaction();
+
+                try {
+                    Log::info('ProductController: Starting product deletion process', [
+                        'product_id' => $id,
+                        'product_name' => $product->name
+                    ]);
+
+                    // 1. Clean up payments that contain this product in purchased_items
+                    $paymentsWithProduct = Payment::whereJsonContains('purchased_items', [['product_id' => $id]])->get();
+
+                    Log::info('ProductController: Found payments containing this product', [
+                        'product_id' => $id,
+                        'payments_count' => $paymentsWithProduct->count(),
+                        'payment_ids' => $paymentsWithProduct->pluck('id')->toArray()
+                    ]);
+
+                    foreach ($paymentsWithProduct as $payment) {
+                        $purchasedItems = $payment->purchased_items ?? [];
+
+                        // Filter out items with this product_id
+                        $filteredItems = array_filter($purchasedItems, function($item) use ($id) {
+                            return ($item['product_id'] ?? null) != $id;
+                        });
+
+                        if (empty($filteredItems)) {
+                            // If no items left, delete the entire payment
+                            Log::info('ProductController: Deleting payment with no remaining items', [
+                                'payment_id' => $payment->id,
+                                'product_id' => $id
+                            ]);
+                            $payment->delete();
+                        } else {
+                            // Update payment with remaining items and recalculate amount
+                            $newAmount = array_sum(array_map(function($item) {
+                                return ($item['price'] ?? 0) * ($item['quantity'] ?? 1);
+                            }, $filteredItems));
+
+                            Log::info('ProductController: Updating payment with remaining items', [
+                                'payment_id' => $payment->id,
+                                'product_id' => $id,
+                                'original_amount' => $payment->amount,
+                                'new_amount' => $newAmount,
+                                'remaining_items' => count($filteredItems)
+                            ]);
+
+                            $payment->update([
+                                'purchased_items' => array_values($filteredItems),
+                                'amount' => $newAmount
+                            ]);
+                        }
                     }
+
+                    // 2. Clean up cart items that contain this product
+                    $cartsWithProduct = Cart::whereNotNull('items')->get();
+
+                    foreach ($cartsWithProduct as $cart) {
+                        $cartItems = $cart->items ?? [];
+
+                        // Filter out items with this product_id
+                        $filteredCartItems = array_filter($cartItems, function($item) use ($id) {
+                            return ($item['product_id'] ?? null) != $id;
+                        });
+
+                        if (count($filteredCartItems) != count($cartItems)) {
+                            Log::info('ProductController: Updating cart items', [
+                                'cart_id' => $cart->id,
+                                'user_id' => $cart->user_id,
+                                'product_id' => $id,
+                                'original_items_count' => count($cartItems),
+                                'remaining_items_count' => count($filteredCartItems)
+                            ]);
+
+                            $cart->update([
+                                'items' => array_values($filteredCartItems)
+                            ]);
+                        }
+                    }
+
+                    // 3. Delete associated AR model file if exists
+                    if ($product->ar_model_url) {
+                        $arModelPath = public_path($product->ar_model_url);
+                        if (file_exists($arModelPath)) {
+                            unlink($arModelPath);
+                            Log::info('ProductController: Deleted AR model file', [
+                                'product_id' => $id,
+                                'ar_model_path' => $arModelPath
+                            ]);
+                        }
+                    }
+
+                    // 4. Delete associated image file if exists
+                    if ($product->image) {
+                        $imagePath = public_path($product->image);
+                        if (file_exists($imagePath)) {
+                            unlink($imagePath);
+                            Log::info('ProductController: Deleted product image', [
+                                'product_id' => $id,
+                                'image_path' => $imagePath
+                            ]);
+                        }
+                    }
+
+                    // 5. Finally delete the product
+                    $product->delete();
+
+                    Log::info('ProductController: Successfully deleted product and cleaned up references', [
+                        'product_id' => $id,
+                        'payments_processed' => $paymentsWithProduct->count(),
+                        'carts_processed' => $cartsWithProduct->count()
+                    ]);
+
+                    DB::commit();
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Product deleted successfully along with related cart items and payment references',
+                        'cleanup_info' => [
+                            'payments_affected' => $paymentsWithProduct->count(),
+                            'carts_checked' => $cartsWithProduct->count()
+                        ]
+                    ]);
+
+                } catch (\Exception $e) {
+                    DB::rollback();
+
+                    Log::error('ProductController: Error during product deletion', [
+                        'product_id' => $id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error deleting product: ' . $e->getMessage()
+                    ], 500);
                 }
-
-                $product->delete();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Product deleted successfully'
-                ]);
             }
 
             /**
