@@ -59,8 +59,8 @@
                         <div class="col-md-2">
                             <div class="card bg-dark text-white">
                                 <div class="card-body text-center text-white">
-                                    <h6>Items Purchased</h6>
-                                    <h3>{{ $totalPurchasedItems }}</h3>
+                                    <h6 class="text-white">Items Purchased</h6>
+                                    <h3 class="text-white">{{ $totalPurchasedItems }}</h3>
                                 </div>
                             </div>
                         </div>
