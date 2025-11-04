@@ -33,9 +33,9 @@ class HomeController extends Controller
         $totalProducts = Product::count();
         $totalCategories = Category::count();
 
-        // Get user's cart
+        // Get user's cart and items count
         $userCart = $user->cart;
-        $cartItemsCount = $userCart ? count($userCart->items) : 0;
+        $cartItemsCount = $userCart ? $userCart->items()->count() : 0;
 
         // Get user's payments
         $userPayments = Payment::where('user_id', $user->id)->sum('amount');

@@ -123,7 +123,7 @@
                     </div>
 
                     <!-- Cart Summary -->
-                    @if($userCart && count($userCart->items) > 0)
+                    @if($userCart && $userCart->items()->count() > 0)
                         <div class="row mt-4">
                             <div class="col-12">
                                 <div class="card">
@@ -131,7 +131,7 @@
                                         <h5>Your Cart</h5>
                                     </div>
                                     <div class="card-body">
-                                        <p>You have {{ count($userCart->items) }} items in your cart.</p>
+                                        <p>You have {{ $userCart->items()->count() }} items in your cart.</p>
                                         <a href="#" class="btn btn-primary">View Cart</a>
                                     </div>
                                 </div>
