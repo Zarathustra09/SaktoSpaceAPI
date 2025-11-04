@@ -265,18 +265,18 @@
                             </div>
 
                             <!-- Cart Summary -->
-                            @if($userCart && $cartItemsCount > 0)
-                                <div class="card mt-3">
-                                    <div class="card-header">
-                                        <h5><i class="fas fa-shopping-bag"></i> Your Cart</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>You have <strong>{{ $cartItemsCount }}</strong> items in your cart.</p>
-                                        <a href="#" class="btn btn-primary btn-sm">View Cart</a>
-                                        <a href="#" class="btn btn-success btn-sm">Checkout</a>
-                                    </div>
-                                </div>
-                            @endif
+{{--                            @if($userCart && $cartItemsCount > 0)--}}
+{{--                                <div class="card mt-3">--}}
+{{--                                    <div class="card-header">--}}
+{{--                                        <h5><i class="fas fa-shopping-bag"></i> Your Cart</h5>--}}
+{{--                                    </div>--}}
+{{--                                    <div class="card-body">--}}
+{{--                                        <p>You have <strong>{{ $cartItemsCount }}</strong> items in your cart.</p>--}}
+{{--                                        <a href="#" class="btn btn-primary btn-sm">View Cart</a>--}}
+{{--                                        <a href="#" class="btn btn-success btn-sm">Checkout</a>--}}
+{{--                                    </div>--}}
+{{--                                </div>--}}
+{{--                            @endif--}}
                         </div>
                     </div>
                 </div>
