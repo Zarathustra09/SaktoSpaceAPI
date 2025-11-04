@@ -24,9 +24,12 @@
               {
                   $categoryId = $request->query('category_id');
 
+                  // Apply category filter only when category_id is provided and is a valid numeric value
+                  $applyCategoryFilter = !is_null($categoryId) && $categoryId !== '' && is_numeric($categoryId);
+
                   $products = Product::with('category')
-                      ->when($categoryId, function ($query) use ($categoryId) {
-                          $query->where('category_id', $categoryId);
+                      ->when($applyCategoryFilter, function ($query) use ($categoryId) {
+                          $query->where('category_id', intval($categoryId));
                       })
                       ->get();
 
