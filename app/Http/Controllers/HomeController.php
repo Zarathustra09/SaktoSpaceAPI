@@ -108,7 +108,7 @@ class HomeController extends Controller
         $recentPayments = $completedPayments->sortByDesc('payment_date')->take(5)->values();
 
         // Product and category analytics from completed payments
-        $purchasedProducts = collect();
+        $purchasedProductsArray = []; // Use array instead of Collection
         $categorySpending = collect();
 
         foreach ($completedPayments as $payment) {
@@ -133,16 +133,15 @@ class HomeController extends Controller
                 $price = (float) ($item['price'] ?? 0);
                 $totalSpent = $price * $quantity;
 
-                $existingIndex = $purchasedProducts->search(fn ($p) => $p['id'] === $productId);
-                if ($existingIndex !== false) {
-                    $purchasedProducts[$existingIndex]['quantity'] += $quantity;
-                    $purchasedProducts[$existingIndex]['total_spent'] += $totalSpent;
-                    if ($payment->payment_date > $purchasedProducts[$existingIndex]['last_purchased']) {
-                        $purchasedProducts[$existingIndex]['last_purchased'] = $payment->payment_date;
+                if (isset($purchasedProductsArray[$productId])) {
+                    $purchasedProductsArray[$productId]['quantity'] += $quantity;
+                    $purchasedProductsArray[$productId]['total_spent'] += $totalSpent;
+                    if ($payment->payment_date > $purchasedProductsArray[$productId]['last_purchased']) {
+                        $purchasedProductsArray[$productId]['last_purchased'] = $payment->payment_date;
                     }
                 } else {
                     // Use canonical product data (same as products.index)
-                    $purchasedProducts->push([
+                    $purchasedProductsArray[$productId] = [
                         'id' => $productId,
                         'name' => $product?->name ?? 'Unknown Product',
                         'image' => $product?->image, // already a full /storage/... path
@@ -150,12 +149,15 @@ class HomeController extends Controller
                         'quantity' => $quantity,
                         'total_spent' => $totalSpent,
                         'last_purchased' => $payment->payment_date,
-                    ]);
+                    ];
                 }
 
                 $categorySpending[$categoryName] = ($categorySpending[$categoryName] ?? 0) + $totalSpent;
             }
         }
+
+        // Convert array back to Collection for sorting
+        $purchasedProducts = collect(array_values($purchasedProductsArray));
 
         // Log computed metrics summary
         Log::info('Admin Dashboard: computed metrics', [
