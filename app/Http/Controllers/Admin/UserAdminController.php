@@ -44,4 +44,3 @@ class UserAdminController extends Controller
         return back()->with('success', 'User demoted from Admin.');
     }
 }
-
