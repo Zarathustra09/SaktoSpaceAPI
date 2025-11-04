@@ -1,6 +1,76 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    // Log all data passed to the view
+    Log::info('Home Blade: All variables passed to view', [
+        'totalProducts' => $totalProducts ?? 'undefined',
+        'totalCategories' => $totalCategories ?? 'undefined',
+        'cartItemsCount' => $cartItemsCount ?? 'undefined',
+        'totalPayments' => $totalPayments ?? 'undefined',
+        'totalOrders' => $totalOrders ?? 'undefined',
+        'totalPurchasedItems' => $totalPurchasedItems ?? 'undefined',
+        'averageOrderValue' => $averageOrderValue ?? 'undefined',
+        'monthlySpending_count' => isset($monthlySpending) ? $monthlySpending->count() : 'undefined',
+        'recentPayments_count' => isset($recentPayments) ? $recentPayments->count() : 'undefined',
+        'categoriesWithCounts_count' => isset($categoriesWithCounts) ? $categoriesWithCounts->count() : 'undefined',
+        'topPurchasedProducts_count' => isset($topPurchasedProducts) ? $topPurchasedProducts->count() : 'undefined',
+        'topSpentProducts_count' => isset($topSpentProducts) ? $topSpentProducts->count() : 'undefined',
+        'categorySpendingData_count' => isset($categorySpendingData) ? $categorySpendingData->count() : 'undefined',
+        'userCart_exists' => isset($userCart) ? 'yes' : 'no',
+    ]);
+
+    // Log topPurchasedProducts details
+    if (isset($topPurchasedProducts)) {
+        Log::info('Home Blade: topPurchasedProducts details', [
+            'products' => $topPurchasedProducts->map(function($product) {
+                return [
+                    'id' => $product['id'] ?? 'missing',
+                    'name' => $product['name'] ?? 'missing',
+                    'category' => $product['category'] ?? 'missing',
+                    'image' => $product['image'] ?? 'missing',
+                    'quantity' => $product['quantity'] ?? 'missing',
+                    'total_spent' => $product['total_spent'] ?? 'missing',
+                    'last_purchased' => isset($product['last_purchased']) ? $product['last_purchased']->toDateTimeString() : 'missing',
+                ];
+            })->toArray()
+        ]);
+    }
+
+    // Log topSpentProducts details
+    if (isset($topSpentProducts)) {
+        Log::info('Home Blade: topSpentProducts details', [
+            'products' => $topSpentProducts->map(function($product) {
+                return [
+                    'id' => $product['id'] ?? 'missing',
+                    'name' => $product['name'] ?? 'missing',
+                    'category' => $product['category'] ?? 'missing',
+                    'image' => $product['image'] ?? 'missing',
+                    'quantity' => $product['quantity'] ?? 'missing',
+                    'total_spent' => $product['total_spent'] ?? 'missing',
+                    'last_purchased' => isset($product['last_purchased']) ? $product['last_purchased']->toDateTimeString() : 'missing',
+                ];
+            })->toArray()
+        ]);
+    }
+
+    // Log recent payments details
+    if (isset($recentPayments)) {
+        Log::info('Home Blade: recentPayments details', [
+            'payments' => $recentPayments->map(function($payment) {
+                return [
+                    'id' => $payment->id ?? 'missing',
+                    'amount' => $payment->amount ?? 'missing',
+                    'payment_method' => $payment->payment_method ?? 'missing',
+                    'status' => $payment->status ?? 'missing',
+                    'payment_date' => isset($payment->payment_date) ? $payment->payment_date->toDateTimeString() : 'missing',
+                    'purchased_products_count' => isset($payment->purchased_products) ? $payment->purchased_products->count() : 'missing',
+                ];
+            })->toArray()
+        ]);
+    }
+@endphp
+
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-12">
@@ -107,7 +177,20 @@
                                 </div>
                                 <div class="card-body">
                                     @if($categorySpendingData->count() > 0)
+                                        @php
+                                            Log::info('Home Blade: categorySpendingData loop', [
+                                                'categorySpendingData' => $categorySpendingData->toArray()
+                                            ]);
+                                        @endphp
                                         @foreach($categorySpendingData as $category => $amount)
+                                            @php
+                                                Log::info('Home Blade: category spending item', [
+                                                    'category' => $category,
+                                                    'amount' => $amount,
+                                                    'category_type' => gettype($category),
+                                                    'amount_type' => gettype($amount)
+                                                ]);
+                                            @endphp
                                             <div class="d-flex justify-content-between align-items-center mb-2">
                                                 <span>{{ $category }}</span>
                                                 <div>
@@ -136,7 +219,16 @@
                                 </div>
                                 <div class="card-body">
                                     @if($topPurchasedProducts->count() > 0)
-                                        @foreach($topPurchasedProducts as $product)
+                                        @foreach($topPurchasedProducts as $index => $product)
+                                            @php
+                                                Log::info('Home Blade: topPurchasedProducts item', [
+                                                    'index' => $index,
+                                                    'product_data' => $product,
+                                                    'product_type' => gettype($product),
+                                                    'is_array' => is_array($product),
+                                                    'product_keys' => is_array($product) ? array_keys($product) : 'not_array'
+                                                ]);
+                                            @endphp
                                             <div class="media mb-3">
                                                 @if($product['image'])
                                                     <img src="{{ $product['image'] }}" class="mr-3" style="width: 50px; height: 50px; object-fit: cover;" alt="{{ $product['name'] }}">
@@ -166,7 +258,16 @@
                                 </div>
                                 <div class="card-body">
                                     @if($topSpentProducts->count() > 0)
-                                        @foreach($topSpentProducts as $product)
+                                        @foreach($topSpentProducts as $index => $product)
+                                            @php
+                                                Log::info('Home Blade: topSpentProducts item', [
+                                                    'index' => $index,
+                                                    'product_data' => $product,
+                                                    'product_type' => gettype($product),
+                                                    'is_array' => is_array($product),
+                                                    'product_keys' => is_array($product) ? array_keys($product) : 'not_array'
+                                                ]);
+                                            @endphp
                                             <div class="media mb-3">
                                                 @if($product['image'])
                                                     <img src="{{ $product['image'] }}" class="mr-3" style="width: 50px; height: 50px; object-fit: cover;" alt="{{ $product['name'] }}">
@@ -199,7 +300,25 @@
                                 </div>
                                 <div class="card-body">
                                     @if($recentPayments->count() > 0)
-                                        @foreach($recentPayments as $payment)
+                                        @foreach($recentPayments as $index => $payment)
+                                            @php
+                                                Log::info('Home Blade: recentPayments item', [
+                                                    'index' => $index,
+                                                    'payment_id' => $payment->id,
+                                                    'amount' => $payment->amount,
+                                                    'payment_method' => $payment->payment_method,
+                                                    'purchased_products_count' => $payment->purchased_products->count(),
+                                                    'purchased_products_sample' => $payment->purchased_products->take(2)->map(function($item) {
+                                                        return [
+                                                            'name' => $item->name ?? 'missing',
+                                                            'product_name' => optional($item->product)->name ?? 'missing',
+                                                            'image' => $item->image ?? 'missing',
+                                                            'quantity' => $item->quantity ?? 'missing',
+                                                            'price' => $item->price ?? 'missing'
+                                                        ];
+                                                    })->toArray()
+                                                ]);
+                                            @endphp
                                             <div class="card mb-3">
                                                 <div class="card-body">
                                                     <div class="d-flex justify-content-between align-items-start">
@@ -213,7 +332,19 @@
                                                         <div class="mt-2">
                                                             <small class="text-muted">Items purchased:</small>
                                                             <div class="row mt-1">
-                                                                @foreach($payment->purchased_products->take(3) as $item)
+                                                                @foreach($payment->purchased_products->take(3) as $itemIndex => $item)
+                                                                    @php
+                                                                        Log::info('Home Blade: payment item detail', [
+                                                                            'payment_id' => $payment->id,
+                                                                            'item_index' => $itemIndex,
+                                                                            'item_name' => $item->name ?? 'missing',
+                                                                            'product_name' => optional($item->product)->name ?? 'missing',
+                                                                            'image' => $item->image ?? 'missing',
+                                                                            'quantity' => $item->quantity ?? 'missing',
+                                                                            'price' => $item->price ?? 'missing',
+                                                                            'product_exists' => $item->product ? 'yes' : 'no'
+                                                                        ]);
+                                                                    @endphp
                                                                     <div class="col-md-4">
                                                                         <div class="d-flex align-items-center">
                                                                             @if($item->image)
@@ -270,7 +401,7 @@
 {{--                                    <div class="card-header">--}}
 {{--                                        <h5><i class="fas fa-shopping-bag"></i> Your Cart</h5>--}}
 {{--                                    </div>--}}
-{{--                                    <div class="card-body">--}}
+{{--                                    class="card-body">--}}
 {{--                                        <p>You have <strong>{{ $cartItemsCount }}</strong> items in your cart.</p>--}}
 {{--                                        <a href="#" class="btn btn-primary btn-sm">View Cart</a>--}}
 {{--                                        <a href="#" class="btn btn-success btn-sm">Checkout</a>--}}
