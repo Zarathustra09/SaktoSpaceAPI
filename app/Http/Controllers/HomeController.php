@@ -111,6 +111,12 @@ class HomeController extends Controller
         $purchasedProductsArray = []; // Use array instead of Collection
         $categorySpending = collect();
 
+        // Get all existing product IDs for validation
+        $existingProductIds = Product::pluck('id')->toArray();
+        Log::info('HomeController: Existing product IDs in database', [
+            'product_ids' => $existingProductIds
+        ]);
+
         foreach ($completedPayments as $payment) {
             $items = is_array($payment->purchased_items)
                 ? $payment->purchased_items
@@ -120,13 +126,50 @@ class HomeController extends Controller
                 continue;
             }
 
+            Log::info('HomeController: Processing payment items', [
+                'payment_id' => $payment->id,
+                'items_count' => count($items),
+                'items' => $items
+            ]);
+
             foreach ($items as $item) {
                 $productId = $item['product_id'] ?? null;
+
+                Log::info('HomeController: Processing individual item', [
+                    'payment_id' => $payment->id,
+                    'product_id' => $productId,
+                    'item_name' => $item['name'] ?? 'no_name',
+                    'item_data' => $item
+                ]);
+
                 if (!$productId) {
+                    Log::warning('HomeController: Item missing product_id', [
+                        'payment_id' => $payment->id,
+                        'item' => $item
+                    ]);
                     continue;
                 }
 
+                // Check if product exists in database
+                if (!in_array($productId, $existingProductIds)) {
+                    Log::warning('HomeController: Product ID not found in database', [
+                        'payment_id' => $payment->id,
+                        'missing_product_id' => $productId,
+                        'item_name' => $item['name'] ?? 'no_name',
+                        'existing_ids' => $existingProductIds
+                    ]);
+                }
+
                 $product = Product::with('category')->find($productId);
+
+                if (!$product) {
+                    Log::warning('HomeController: Product not found, creating fallback entry', [
+                        'payment_id' => $payment->id,
+                        'product_id' => $productId,
+                        'fallback_name' => $item['name'] ?? 'Unknown Product'
+                    ]);
+                }
+
                 $categoryName = $product && $product->category ? $product->category->name : 'Unknown';
 
                 $quantity = (int) ($item['quantity'] ?? 1);
@@ -140,16 +183,23 @@ class HomeController extends Controller
                         $purchasedProductsArray[$productId]['last_purchased'] = $payment->payment_date;
                     }
                 } else {
-                    // Use canonical product data (same as products.index)
+                    // Use canonical product data (same as products.index) or fallback data
                     $purchasedProductsArray[$productId] = [
                         'id' => $productId,
-                        'name' => $product?->name ?? 'Unknown Product',
+                        'name' => $product?->name ?? ($item['name'] ?? 'Unknown Product'),
                         'image' => $product?->image, // already a full /storage/... path
                         'category' => $categoryName,
                         'quantity' => $quantity,
                         'total_spent' => $totalSpent,
                         'last_purchased' => $payment->payment_date,
                     ];
+
+                    Log::info('HomeController: Created product entry', [
+                        'product_id' => $productId,
+                        'product_found' => $product ? 'yes' : 'no',
+                        'final_name' => $purchasedProductsArray[$productId]['name'],
+                        'final_category' => $purchasedProductsArray[$productId]['category']
+                    ]);
                 }
 
                 $categorySpending[$categoryName] = ($categorySpending[$categoryName] ?? 0) + $totalSpent;
@@ -167,6 +217,13 @@ class HomeController extends Controller
             'total_purchased_items' => $totalPurchasedItems,
             'top_products_count' => $purchasedProducts->count(),
             'category_spending_keys' => array_keys($categorySpending->toArray()),
+            'products_summary' => $purchasedProducts->map(function($p) {
+                return [
+                    'id' => $p['id'],
+                    'name' => $p['name'],
+                    'category' => $p['category']
+                ];
+            })->toArray()
         ]);
 
         $topPurchasedProducts = $purchasedProducts->sortByDesc('quantity')->take(5);
