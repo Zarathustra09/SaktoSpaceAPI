@@ -64,13 +64,7 @@
 
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">Category Type *</label>
-                        <select id="category-type" class="swal2-select" style="margin: 0; border-radius: 8px; border: 2px solid #e8f4f8;">
-                            <option value="">🏷️ Select Type</option>
-                            <option value="furniture">🪑 Furniture</option>
-                            <option value="decor">🎨 Decor</option>
-                            <option value="lighting">💡 Lighting</option>
-                            <option value="outdoor">🌿 Outdoor</option>
-                        </select>
+                        <input id="category-type" class="swal2-input" placeholder="Enter category type" style="margin: 0; border-radius: 8px; border: 2px solid #e8f4f8;">
                     </div>
                 </div>
             `,
@@ -214,12 +208,7 @@
 
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">Category Type *</label>
-                            <select id="edit-type" class="swal2-select" style="margin: 0; border-radius: 8px; border: 2px solid #e8f4f8;">
-                                <option value="furniture" ${category.type === 'furniture' ? 'selected' : ''}>🪑 Furniture</option>
-                                <option value="decor" ${category.type === 'decor' ? 'selected' : ''}>🎨 Decor</option>
-                                <option value="lighting" ${category.type === 'lighting' ? 'selected' : ''}>💡 Lighting</option>
-                                <option value="outdoor" ${category.type === 'outdoor' ? 'selected' : ''}>🌿 Outdoor</option>
-                            </select>
+                            <input id="edit-type" class="swal2-input" value="${category.type || ''}" style="margin: 0; border-radius: 8px; border: 2px solid #e8f4f8;">
                         </div>
                     </div>
                 `,

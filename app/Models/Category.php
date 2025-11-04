@@ -21,29 +21,6 @@ class Category extends Model
     ];
 
     /**
-     * Category types enum
-     */
-    const TYPE_FURNITURE = 'furniture';
-    const TYPE_DECOR = 'decor';
-    const TYPE_LIGHTING = 'lighting';
-    const TYPE_OUTDOOR = 'outdoor';
-
-    /**
-     * Get all available category types
-     *
-     * @return array
-     */
-    public static function getTypes(): array
-    {
-        return [
-            self::TYPE_FURNITURE,
-            self::TYPE_DECOR,
-            self::TYPE_LIGHTING,
-            self::TYPE_OUTDOOR,
-        ];
-    }
-
-    /**
      * Get products belonging to this category
      */
     public function products()
