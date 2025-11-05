@@ -47,6 +47,9 @@
                         <td>{{ $product->created_at->format('M d, Y') }}</td>
                         <td>
                             <button class="btn btn-info btn-sm" onclick="viewProduct({{ $product->id }})">View</button>
+                            @if($product->ar_model_url)
+                                <button class="btn btn-primary btn-sm" onclick="viewArModel({{ $product->id }}, '{{ $product->ar_model_url }}', '{{ $product->name }}')">🥽 AR</button>
+                            @endif
                             <button class="btn btn-warning btn-sm" onclick="editProduct({{ $product->id }})">Edit</button>
                             <button class="btn btn-danger btn-sm" onclick="deleteProduct({{ $product->id }})">Delete</button>
                         </td>
@@ -1119,5 +1122,185 @@
             }
         });
     }
+
+    function viewArModel(productId, arModelUrl, productName) {
+        Swal.fire({
+            title: `<h3 style="color: #2c3e50;">🥽 AR Model - ${productName}</h3>`,
+            html: `
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 20px; text-align: center;">
+                        <p style="color: #7f8c8d; margin-bottom: 15px;">
+                            Use your mouse to rotate, zoom, and interact with the 3D model.
+                        </p>
+                        <div style="background: #e8f4f8; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                            <small style="color: #2c3e50;">
+                                📱 <strong>Mobile tip:</strong> Use touch gestures to rotate and pinch to zoom<br>
+                                🖥️ <strong>Desktop tip:</strong> Click and drag to rotate, scroll to zoom
+                            </small>
+                        </div>
+                    </div>
+
+                    <div style="width: 100%; height: 500px; border: 2px solid #e8f4f8; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <model-viewer
+                            id="ar-model-viewer"
+                            src="${arModelUrl}"
+                            alt="3D model of ${productName}"
+                            auto-rotate
+                            camera-controls
+                            interaction-policy="always-allow"
+                            style="width: 100%; height: 100%;"
+                            loading="eager"
+                            reveal="auto"
+                            environment-image="neutral"
+                            shadow-intensity="1"
+                            camera-orbit="0deg 75deg 105%"
+                            min-camera-orbit="auto auto auto"
+                            max-camera-orbit="auto auto auto"
+                            min-field-of-view="30deg"
+                            max-field-of-view="120deg">
+
+                            <!-- Loading indicator -->
+                            <div slot="poster" style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <div style="text-align: center;">
+                                    <div class="spinner-border text-light mb-3" role="status"></div>
+                                    <p>Loading 3D Model...</p>
+                                </div>
+                            </div>
+
+                            <!-- Error fallback -->
+                            <div slot="error" style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; color: #6c757d;">
+                                <div style="text-align: center;">
+                                    <h4>❌ Unable to load 3D model</h4>
+                                    <p>The AR model file may be corrupted or incompatible.</p>
+                                </div>
+                            </div>
+                        </model-viewer>
+                    </div>
+
+                    <div style="margin-top: 20px; text-align: center;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 15px;">
+                            <button type="button" id="reset-camera" class="btn btn-outline-primary btn-sm">
+                                📷 Reset View
+                            </button>
+                            <button type="button" id="toggle-autorotate" class="btn btn-outline-secondary btn-sm">
+                                🔄 Toggle Rotation
+                            </button>
+                            <button type="button" id="fullscreen-model" class="btn btn-outline-success btn-sm">
+                                🔍 Fullscreen
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                            <small style="color: #6c757d;">
+                                <strong>Controls:</strong> Left click + drag to rotate • Right click + drag to pan • Scroll to zoom
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            `,
+            width: '800px',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'ar-model-popup'
+            },
+            didOpen: () => {
+                initializeArModelControls();
+            },
+            willClose: () => {
+                // Clean up model viewer if needed
+                const modelViewer = document.getElementById('ar-model-viewer');
+                if (modelViewer) {
+                    modelViewer.autoRotate = false;
+                }
+            }
+        });
+    }
+
+    function initializeArModelControls() {
+        const modelViewer = document.getElementById('ar-model-viewer');
+
+        if (!modelViewer) return;
+
+        // Reset camera button
+        document.getElementById('reset-camera').addEventListener('click', function() {
+            modelViewer.cameraOrbit = '0deg 75deg 105%';
+            modelViewer.fieldOfView = '45deg';
+        });
+
+        // Toggle auto-rotate button
+        document.getElementById('toggle-autorotate').addEventListener('click', function() {
+            modelViewer.autoRotate = !modelViewer.autoRotate;
+            this.textContent = modelViewer.autoRotate ? '⏸️ Stop Rotation' : '🔄 Start Rotation';
+            this.classList.toggle('btn-outline-warning', modelViewer.autoRotate);
+            this.classList.toggle('btn-outline-secondary', !modelViewer.autoRotate);
+        });
+
+        // Fullscreen button
+        document.getElementById('fullscreen-model').addEventListener('click', function() {
+            if (modelViewer.requestFullscreen) {
+                modelViewer.requestFullscreen();
+            } else if (modelViewer.webkitRequestFullscreen) {
+                modelViewer.webkitRequestFullscreen();
+            } else if (modelViewer.msRequestFullscreen) {
+                modelViewer.msRequestFullscreen();
+            }
+        });
+
+        // Model viewer event listeners
+        modelViewer.addEventListener('load', function() {
+            console.log('3D model loaded successfully');
+        });
+
+        modelViewer.addEventListener('error', function(event) {
+            console.error('Error loading 3D model:', event.detail);
+        });
+
+        modelViewer.addEventListener('camera-change', function(event) {
+            // Optional: Log camera changes for debugging
+            // console.log('Camera changed:', event.detail);
+        });
+
+        // Progress indicator
+        modelViewer.addEventListener('progress', function(event) {
+            const progress = event.detail.totalProgress;
+            if (progress < 1) {
+                console.log(`Loading progress: ${Math.round(progress * 100)}%`);
+            }
+        });
+    }
 </script>
+
+<style>
+.ar-model-popup .swal2-popup {
+    padding: 0;
+}
+
+.ar-model-popup .swal2-html-container {
+    padding: 0;
+    margin: 0;
+}
+
+/* Custom styles for model viewer */
+model-viewer {
+    --poster-color: transparent;
+    --progress-bar-color: #007bff;
+    --progress-bar-height: 4px;
+}
+
+model-viewer::part(default-progress-bar) {
+    background-color: #007bff;
+    height: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .ar-model-popup {
+        width: 95% !important;
+    }
+
+    .ar-model-popup model-viewer {
+        height: 400px !important;
+    }
+}
+</style>
 @endpush
