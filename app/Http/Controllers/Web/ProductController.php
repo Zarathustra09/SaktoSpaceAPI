@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,7 @@ class ProductController extends Controller
      */
     public function index(): View
     {
-        $products = Product::with('category')->get();
+        $products = Product::with('category', 'images')->get();
         $categories = Category::all();
         return view('products.index', compact('products', 'categories'));
     }
@@ -29,7 +30,7 @@ class ProductController extends Controller
      */
     public function show(Product $product): JsonResponse
     {
-        $product->load('category');
+        $product->load('category', 'images');
         return response()->json($product);
     }
 
@@ -41,30 +42,13 @@ class ProductController extends Controller
         Log::info('=== PRODUCT STORE REQUEST START ===');
         Log::info('Request method: ' . $request->method());
         Log::info('Request URL: ' . $request->fullUrl());
-        Log::info('Request data (excluding files):', $request->except(['image', 'ar_model']));
+        Log::info('Request data (excluding files):', $request->except(['image', 'ar_model', 'additional_images']));
         Log::info('Has image file: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
         Log::info('Has AR model file: ' . ($request->hasFile('ar_model') ? 'YES' : 'NO'));
+        Log::info('Has additional images: ' . ($request->hasFile('additional_images') ? 'YES' : 'NO'));
 
-        if ($request->hasFile('image')) {
-            $imageFile = $request->file('image');
-            Log::info('Image file details:', [
-                'original_name' => $imageFile->getClientOriginalName(),
-                'mime_type' => $imageFile->getMimeType(),
-                'size' => $imageFile->getSize(),
-                'is_valid' => $imageFile->isValid(),
-                'error' => $imageFile->getError()
-            ]);
-        }
-
-        if ($request->hasFile('ar_model')) {
-            $arFile = $request->file('ar_model');
-            Log::info('AR model file details:', [
-                'original_name' => $arFile->getClientOriginalName(),
-                'mime_type' => $arFile->getMimeType(),
-                'size' => $arFile->getSize(),
-                'is_valid' => $arFile->isValid(),
-                'error' => $arFile->getError()
-            ]);
+        if ($request->hasFile('additional_images')) {
+            Log::info('Additional images count: ' . count($request->file('additional_images')));
         }
 
         // Use same validation as API with custom AR model validation
@@ -93,6 +77,33 @@ class ProductController extends Controller
             }
         }
 
+        // Add validation for additional images
+        if ($request->hasFile('additional_images')) {
+            $additionalImages = $request->file('additional_images');
+
+            if (count($additionalImages) > 5) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['additional_images' => ['You can only upload a maximum of 5 additional images.']]
+                ], 422);
+            }
+
+            foreach ($additionalImages as $index => $image) {
+                if (!$image->isValid()) {
+                    $validator->errors()->add("additional_images.{$index}", 'Invalid image file.');
+                    continue;
+                }
+
+                if ($image->getSize() > 2048 * 1024) {
+                    $validator->errors()->add("additional_images.{$index}", 'Image size must not exceed 2MB.');
+                }
+
+                if (!in_array(strtolower($image->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'gif'])) {
+                    $validator->errors()->add("additional_images.{$index}", 'Image must be jpg, jpeg, png, or gif.');
+                }
+            }
+        }
+
         if ($validator->fails()) {
             Log::error('Validation failed:', $validator->errors()->toArray());
             return response()->json([
@@ -101,10 +112,10 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $data = $request->except(['image', 'ar_model']);
+        $data = $request->except(['image', 'ar_model', 'additional_images']);
         Log::info('Base product data:', $data);
 
-        // Handle image upload
+        // Handle main image upload
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             try {
                 Log::info('Processing image upload...');
@@ -192,7 +203,41 @@ class ProductController extends Controller
 
         try {
             $product = Product::create($data);
-            $product->load('category');
+
+            // Handle additional images
+            if ($request->hasFile('additional_images')) {
+                Log::info('Processing additional images...');
+
+                $imageDir = public_path('storage/images');
+                if (!file_exists($imageDir)) {
+                    mkdir($imageDir, 0755, true);
+                }
+
+                foreach ($request->file('additional_images') as $index => $image) {
+                    if ($image->isValid()) {
+                        try {
+                            $imageName = time() . '_' . uniqid() . '_additional_' . $index . '.' . $image->getClientOriginalExtension();
+                            $moved = $image->move($imageDir, $imageName);
+
+                            if ($moved) {
+                                $imageUrl = '/storage/images/' . $imageName;
+
+                                ProductImage::create([
+                                    'product_id' => $product->id,
+                                    'url' => $imageUrl,
+                                    'alt_text' => $product->name . ' - Additional Image ' . ($index + 1)
+                                ]);
+
+                                Log::info("Additional image {$index} uploaded successfully: {$imageUrl}");
+                            }
+                        } catch (\Exception $e) {
+                            Log::error("Error uploading additional image {$index}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            $product->load('category', 'images');
 
             Log::info('Product created successfully with ID: ' . $product->id);
             Log::info('Created product data:', $product->toArray());
@@ -219,6 +264,14 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product): JsonResponse
     {
+        Log::info('=== PRODUCT UPDATE REQUEST START ===');
+        Log::info('Product ID: ' . $product->id);
+        Log::info('Request data (excluding files):', $request->except(['image', 'ar_model', 'additional_images']));
+        Log::info('Has image file: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
+        Log::info('Has AR model file: ' . ($request->hasFile('ar_model') ? 'YES' : 'NO'));
+        Log::info('Has additional images: ' . ($request->hasFile('additional_images') ? 'YES' : 'NO'));
+        Log::info('Deleted image IDs:', $request->input('deleted_image_ids', []));
+
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -242,46 +295,184 @@ class ProductController extends Controller
             }
         }
 
+        // Add validation for additional images
+        if ($request->hasFile('additional_images')) {
+            $additionalImages = $request->file('additional_images');
+
+            // Count current additional images that won't be deleted
+            $deletedImageIds = $request->input('deleted_image_ids', []);
+            $currentImagesCount = $product->images()->whereNotIn('id', $deletedImageIds)->count();
+
+            if ($currentImagesCount + count($additionalImages) > 5) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['additional_images' => ['You can only have a maximum of 5 additional images total.']]
+                ], 422);
+            }
+
+            foreach ($additionalImages as $index => $image) {
+                if (!$image->isValid()) {
+                    $validator->errors()->add("additional_images.{$index}", 'Invalid image file.');
+                    continue;
+                }
+
+                if ($image->getSize() > 2048 * 1024) {
+                    $validator->errors()->add("additional_images.{$index}", 'Image size must not exceed 2MB.');
+                }
+
+                if (!in_array(strtolower($image->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'gif'])) {
+                    $validator->errors()->add("additional_images.{$index}", 'Image must be jpg, jpeg, png, or gif.');
+                }
+            }
+        }
+
         if ($validator->fails()) {
+            Log::error('Validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        $data = $request->except(['image', 'ar_model']);
+        $data = $request->except(['image', 'ar_model', 'additional_images', 'deleted_image_ids']);
 
-        // Handle image upload
+        // Handle main image upload
         if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($product->image && file_exists(public_path($product->image))) {
-                unlink(public_path($product->image));
-            }
+            try {
+                // Delete old image if exists
+                if ($product->image && file_exists(public_path($product->image))) {
+                    unlink(public_path($product->image));
+                    Log::info('Deleted old main image: ' . $product->image);
+                }
 
-            $imageName = time() . '_' . $request->file('image')->getClientOriginalName();
-            $request->file('image')->move(public_path('storage/images'), $imageName);
-            $data['image'] = '/storage/images/' . $imageName;
+                $imageDir = public_path('storage/images');
+                if (!file_exists($imageDir)) {
+                    mkdir($imageDir, 0755, true);
+                }
+
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $moved = $image->move($imageDir, $imageName);
+
+                if ($moved) {
+                    $data['image'] = '/storage/images/' . $imageName;
+                    Log::info('Main image updated successfully: ' . $data['image']);
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception during main image update: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['image' => ['Error uploading image: ' . $e->getMessage()]]
+                ], 422);
+            }
         }
 
         // Handle AR model upload
         if ($request->hasFile('ar_model')) {
-            // Delete old AR model if exists
-            if ($product->ar_model_url && file_exists(public_path($product->ar_model_url))) {
-                unlink(public_path($product->ar_model_url));
-            }
+            try {
+                // Delete old AR model if exists
+                if ($product->ar_model_url && file_exists(public_path($product->ar_model_url))) {
+                    unlink(public_path($product->ar_model_url));
+                    Log::info('Deleted old AR model: ' . $product->ar_model_url);
+                }
 
-            $arModelName = time() . '_' . $request->file('ar_model')->getClientOriginalName();
-            $request->file('ar_model')->move(public_path('storage/ar-models'), $arModelName);
-            $data['ar_model_url'] = '/storage/ar-models/' . $arModelName;
+                $arDir = public_path('storage/ar-models');
+                if (!file_exists($arDir)) {
+                    mkdir($arDir, 0755, true);
+                }
+
+                $arModel = $request->file('ar_model');
+                $arModelName = time() . '_' . uniqid() . '.' . $arModel->getClientOriginalExtension();
+                $moved = $arModel->move($arDir, $arModelName);
+
+                if ($moved) {
+                    $data['ar_model_url'] = '/storage/ar-models/' . $arModelName;
+                    Log::info('AR model updated successfully: ' . $data['ar_model_url']);
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception during AR model update: ' . $e->getMessage());
+            }
         }
 
-        $product->update($data);
-        $product->load('category');
+        try {
+            // Update product data
+            $product->update($data);
 
-        return response()->json([
-            'success' => 'Product updated successfully.',
-            'data' => $product
-        ]);
+            // Handle deleted additional images
+            $deletedImageIds = $request->input('deleted_image_ids', []);
+            if (!empty($deletedImageIds)) {
+                Log::info('Processing deleted additional images:', $deletedImageIds);
+
+                $imagesToDelete = ProductImage::where('product_id', $product->id)
+                    ->whereIn('id', $deletedImageIds)
+                    ->get();
+
+                foreach ($imagesToDelete as $imageRecord) {
+                    // Delete file from filesystem
+                    if (file_exists(public_path($imageRecord->url))) {
+                        unlink(public_path($imageRecord->url));
+                        Log::info('Deleted additional image file: ' . $imageRecord->url);
+                    }
+
+                    // Delete database record
+                    $imageRecord->delete();
+                    Log::info('Deleted additional image record: ' . $imageRecord->id);
+                }
+            }
+
+            // Handle new additional images
+            if ($request->hasFile('additional_images')) {
+                Log::info('Processing new additional images...');
+
+                $imageDir = public_path('storage/images');
+                if (!file_exists($imageDir)) {
+                    mkdir($imageDir, 0755, true);
+                }
+
+                foreach ($request->file('additional_images') as $index => $image) {
+                    if ($image->isValid()) {
+                        try {
+                            $imageName = time() . '_' . uniqid() . '_additional_' . $index . '.' . $image->getClientOriginalExtension();
+                            $moved = $image->move($imageDir, $imageName);
+
+                            if ($moved) {
+                                $imageUrl = '/storage/images/' . $imageName;
+
+                                ProductImage::create([
+                                    'product_id' => $product->id,
+                                    'url' => $imageUrl,
+                                    'alt_text' => $product->name . ' - Additional Image ' . ($index + 1)
+                                ]);
+
+                                Log::info("New additional image {$index} uploaded successfully: {$imageUrl}");
+                            }
+                        } catch (\Exception $e) {
+                            Log::error("Error uploading new additional image {$index}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            $product->load('category', 'images');
+
+            Log::info('Product updated successfully');
+            Log::info('Updated product data:', $product->toArray());
+
+            return response()->json([
+                'success' => 'Product updated successfully.',
+                'data' => $product
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Exception during product update: ' . $e->getMessage());
+            Log::error('Exception trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'errors' => ['general' => ['Error updating product: ' . $e->getMessage()]]
+            ], 500);
+        } finally {
+            Log::info('=== PRODUCT UPDATE REQUEST END ===');
+        }
     }
 
     /**
@@ -296,6 +487,13 @@ class ProductController extends Controller
 
         if ($product->ar_model_url && file_exists(public_path($product->ar_model_url))) {
             unlink(public_path($product->ar_model_url));
+        }
+
+        // Delete additional images
+        foreach ($product->images as $image) {
+            if (file_exists(public_path($image->url))) {
+                unlink(public_path($image->url));
+            }
         }
 
         $product->delete();
