@@ -127,7 +127,7 @@
              */
             public function show($id)
             {
-                $product = Product::with(['category'])->find($id);
+                $product = Product::with(['category', 'images'])->find($id);
 
                 if (!$product) {
                     return response()->json([
