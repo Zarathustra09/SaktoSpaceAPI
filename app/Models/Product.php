@@ -64,4 +64,17 @@ class Product extends Model
         }
         return $breakdown;
     }
+
+    /**
+     * Get product images (one-to-many)
+     */
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
+    /**
+     * NOTE: The primary image is stored on the product model itself (the 'image' attribute).
+     * If you need a helper, return $this->image.
+     */
 }
