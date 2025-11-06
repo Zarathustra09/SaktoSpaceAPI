@@ -18,11 +18,42 @@
 
     function viewProduct(productId) {
         $.get('/products/' + productId, function(product) {
-            const imageHtml = product.image
+            // Create main image display
+            const mainImageHtml = product.image
                 ? `<div style="text-align: center; margin-bottom: 20px;">
-                     <img src="${product.image}" alt="${product.name}" style="max-width: 250px; max-height: 200px; object-fit: cover; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                     <img id="main-product-image" src="${product.image}" alt="${product.name}" style="max-width: 250px; max-height: 200px; object-fit: cover; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer;" onclick="expandImage('${product.image}', '${product.name} - Main Image')">
+                     <p style="font-size: 12px; color: #6c757d; margin-top: 5px;">📷 Main Image (click to expand)</p>
                    </div>`
-                : '<div style="text-align: center; margin-bottom: 20px; padding: 40px; background: #f8f9fa; border-radius: 10px; color: #6c757d;">📷 No Image Available</div>';
+                : '<div style="text-align: center; margin-bottom: 20px; padding: 40px; background: #f8f9fa; border-radius: 10px; color: #6c757d;">📷 No Main Image Available</div>';
+
+            // Create additional images gallery
+            let additionalImagesHtml = '';
+            if (product.images && product.images.length > 0) {
+                additionalImagesHtml = `
+                    <div style="margin-bottom: 20px;">
+                        <strong style="color: #34495e;">📸 Additional Images (${product.images.length}):</strong>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            ${product.images.map((img, index) => `
+                                <div style="position: relative; border: 2px solid #dee2e6; border-radius: 8px; overflow: hidden; transition: all 0.3s ease;">
+                                    <img src="${img.url}" alt="${img.alt_text || product.name + ' - Image ' + (index + 1)}"
+                                         style="width: 100%; height: 80px; object-fit: cover; cursor: pointer;"
+                                         onclick="expandImage('${img.url}', '${img.alt_text || product.name + ' - Image ' + (index + 1)}')">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <p style="font-size: 12px; color: #6c757d; margin-top: 5px; text-align: center;">💡 Click any image to expand</p>
+                    </div>
+                `;
+            } else {
+                additionalImagesHtml = `
+                    <div style="margin-bottom: 20px;">
+                        <strong style="color: #34495e;">📸 Additional Images:</strong>
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center; margin-top: 10px; color: #6c757d;">
+                            No additional images available
+                        </div>
+                    </div>
+                `;
+            }
 
             const arBadge = product.ar_model_url
                 ? '<span style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🥽 AR Available</span>'
@@ -31,7 +62,7 @@
             Swal.fire({
                 title: `<h3 style="color: #2c3e50;">🛍️ ${product.name}</h3>`,
                 html: `
-                    ${imageHtml}
+                    ${mainImageHtml}
                     <div style="text-align: left; background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px 0;">
                         <div style="margin-bottom: 15px;">
                             <strong style="color: #34495e;">📄 Description:</strong>
@@ -56,6 +87,8 @@
                             </span>
                         </div>
 
+                        ${additionalImagesHtml}
+
                         <div style="margin-bottom: 15px;">
                             <strong style="color: #34495e;">🥽 AR Model:</strong>
                             <div style="margin-top: 8px;">${arBadge}</div>
@@ -70,36 +103,100 @@
                 icon: 'info',
                 confirmButtonColor: '#3498db',
                 confirmButtonText: '👍 Got it',
-                width: '600px'
+                width: '700px',
+                customClass: {
+                    popup: 'product-view-popup'
+                }
             });
         });
     }
 
-    function editProduct(productId) {
-        editWizardData = {
-            productId: productId,
-            data: {},
-            croppieInstance: null,
-            croppedImageBlob: null,
-            arFile: null,
-            currentImage: null,
-            currentArModel: null
-        };
-
-        // First, get the product data
-        $.get('/products/' + productId, function(product) {
-            editWizardData.data = {
-                name: product.name,
-                description: product.description || '',
-                price: product.price,
-                stock: product.stock,
-                category_id: product.category_id
-            };
-            editWizardData.currentImage = product.image;
-            editWizardData.currentArModel = product.ar_model_url;
-
-            startEditWizard();
+    // Function to expand images in a larger view
+    function expandImage(imageUrl, altText) {
+        Swal.fire({
+            title: altText,
+            imageUrl: imageUrl,
+            imageAlt: altText,
+            imageWidth: '80%',
+            imageHeight: 'auto',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+                image: 'expanded-product-image'
+            },
+            didOpen: () => {
+                // Add some styling for the expanded image
+                const style = document.createElement('style');
+                style.textContent = `
+                    .expanded-product-image {
+                        border-radius: 10px;
+                        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+                        max-height: 80vh;
+                        object-fit: contain;
+                    }
+                    .product-view-popup .swal2-popup {
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
         });
+    }
+
+    async function editProduct(productId) {
+        try {
+            // Show loading
+            Swal.fire({
+                title: 'Loading Product...',
+                html: '<div class="spinner-border text-primary" role="status"></div>',
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
+
+            // Fetch product data
+            const response = await $.ajax({
+                url: `/products/${productId}`,
+                type: 'GET'
+            });
+
+            console.log('Product data loaded:', response);
+
+            // Initialize edit wizard data
+            editWizardData = {
+                productId: productId,
+                data: {
+                    name: response.name,
+                    description: response.description,
+                    price: response.price,
+                    stock: response.stock,
+                    category_id: response.category_id
+                },
+                croppieInstance: null,
+                croppedImageBlob: null,
+                arFile: null,
+                currentImage: response.image,
+                currentArModel: response.ar_model_url,
+                additionalImages: [], // New images to add
+                currentAdditionalImages: response.images || [], // Existing images from server
+                deletedImageIds: [] // Images to delete
+            };
+
+            console.log('Edit wizard data initialized:', editWizardData);
+
+            // Close loading and start wizard
+            Swal.close();
+            await startEditWizard();
+
+        } catch (error) {
+            console.error('Error loading product:', error);
+            await Swal.fire({
+                title: '❌ Error!',
+                text: 'Failed to load product data.',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+        }
     }
 
     function deleteProduct(productId) {

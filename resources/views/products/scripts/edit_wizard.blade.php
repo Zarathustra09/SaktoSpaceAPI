@@ -1,5 +1,4 @@
 <script>
-
     let editWizardData = {
         productId: null,
         data: {},
@@ -7,10 +6,11 @@
         croppedImageBlob: null,
         arFile: null,
         currentImage: null,
-        currentArModel: null
+        currentArModel: null,
+        additionalImages: [],
+        currentAdditionalImages: [], // Ensure this is always initialized as array
+        deletedImageIds: []
     };
-
-
 
     async function startEditWizard() {
         try {
@@ -18,17 +18,21 @@
             const step1Result = await showEditProductDetailsStep();
             if (!step1Result.isConfirmed) return;
 
-            // Step 2: Image Upload & Cropping
+            // Step 2: Main Image Upload & Cropping
             const step2Result = await showEditImageUploadStep();
-            if (!step2Result.isConfirmed && !step2Result.isDenied) return;
+            if (!step2Result.isConfirmed) return;
 
-            // Step 3: AR Model Upload
-            const step3Result = await showEditArModelStep();
-            if (!step3Result.isConfirmed && !step3Result.isDenied) return;
+            // Step 3: Additional Product Images
+            const step3Result = await showEditAdditionalImagesStep();
+            if (!step3Result.isConfirmed) return;
 
-            // Step 4: Review & Submit
-            const step4Result = await showEditReviewStep();
-            if (step4Result.isConfirmed) {
+            // Step 4: AR Model Upload
+            const step4Result = await showEditArModelStep();
+            if (!step4Result.isConfirmed) return;
+
+            // Step 5: Review & Submit
+            const step5Result = await showEditReviewStep();
+            if (step5Result.isConfirmed) {
                 await submitEditProduct();
             }
         } catch (error) {
@@ -99,23 +103,21 @@
     function showEditImageUploadStep() {
         const currentImageHtml = editWizardData.currentImage
             ? `<div style="margin-bottom: 15px; text-align: center;">
-                <p style="margin-bottom: 10px; font-weight: 600; color: #34495e;">Current Image:</p>
+                <p style="margin-bottom: 10px; font-weight: 600; color: #34495e;">Current Main Image:</p>
                 <img src="${editWizardData.currentImage}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6;">
                </div>`
-            : '<p style="color: #6c757d; text-align: center; margin-bottom: 15px;">No current image</p>';
+            : '<p style="color: #6c757d; text-align: center; margin-bottom: 15px;">No current main image</p>';
 
         return Queue.fire({
-            title: '🖼️ Edit Product Image',
+            title: '🖼️ Edit Main Product Image',
             currentProgressStep: 1,
-            showDenyButton: true,
-            denyButtonText: 'Keep Current',
             html: `
                 <div style="text-align: left; padding: 0 20px;">
                     ${currentImageHtml}
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">🖼️ Upload New Image</label>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">🖼️ Upload New Main Image</label>
                         <input id="edit-image-upload" type="file" accept="image/*" style="margin-bottom: 15px; padding: 10px; border: 2px solid #e8f4f8; border-radius: 8px; width: 100%;">
-                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 2MB. Formats: JPG, PNG. Image will be cropped to 500x500 pixels. Leave empty to keep current image.</small>
+                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 2MB. Formats: JPG, PNG. Leave empty to keep current image.</small>
                     </div>
                     <div id="edit-crop-container" style="display: none; margin-top: 20px;">
                         <div id="edit-croppie-container" style="width: 100%; height: 400px; border: 2px solid #e8f4f8; border-radius: 8px;"></div>
@@ -126,7 +128,7 @@
                     </div>
                     <div id="edit-cropped-preview" style="display: none; text-align: center; margin-top: 20px;">
                         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #28a745;">
-                            <p style="color: #28a745; margin-bottom: 15px;"><strong>✅ New Image Ready!</strong></p>
+                            <p style="color: #28a745; margin-bottom: 15px;"><strong>✅ New Main Image Ready!</strong></p>
                             <img id="edit-preview-img" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">
                             <div style="margin-top: 15px;">
                                 <button type="button" id="edit-change-image" class="btn btn-warning btn-sm">🔄 Change Image</button>
@@ -139,21 +141,70 @@
                 initializeEditCroppie();
             },
             preConfirm: () => {
-                if (!editWizardData.croppedImageBlob) {
-                    Swal.showValidationMessage('Please upload and crop a new image, or click "Keep Current" to maintain the existing image.');
+                // Always allow proceeding - if no new image, keep current
+                return true;
+            },
+            allowOutsideClick: false,
+            allowEscapeKey: false
+        });
+    }
+
+    // NEW STEP: Additional Product Images
+    function showEditAdditionalImagesStep() {
+        // Ensure currentAdditionalImages is always an array
+        if (!Array.isArray(editWizardData.currentAdditionalImages)) {
+            editWizardData.currentAdditionalImages = [];
+        }
+
+        const currentImagesHtml = editWizardData.currentAdditionalImages.length > 0
+            ? `<div style="margin-bottom: 20px;">
+                <p style="margin-bottom: 10px; font-weight: 600; color: #34495e;">Current Additional Images:</p>
+                <div id="current-additional-images" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
+                    ${editWizardData.currentAdditionalImages.map(img => `
+                        <div style="position: relative; border: 2px solid #dee2e6; border-radius: 8px; overflow: hidden;" data-image-id="${img.id}">
+                            <img src="${img.url}" style="width: 100%; height: 120px; object-fit: cover;">
+                            <button type="button" onclick="removeCurrentAdditionalImage(${img.id})" style="position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 12px; cursor: pointer;">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+               </div>`
+            : '<p style="color: #6c757d; margin-bottom: 15px;">No current additional images</p>';
+
+        return Queue.fire({
+            title: '📸 Edit Additional Product Images',
+            currentProgressStep: 2,
+            width: '800px',
+            html: `
+                <div style="text-align: left; padding: 0 20px;">
+                    ${currentImagesHtml}
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">📸 Add New Additional Images</label>
+                        <input id="edit-additional-images-upload" type="file" accept="image/*" multiple style="margin-bottom: 15px; padding: 10px; border: 2px solid #e8f4f8; border-radius: 8px; width: 100%;">
+                        <small style="color: #7f8c8d; font-size: 12px;">Max 5 additional images total. Max size: 2MB each. Formats: JPG, PNG. Leave empty to keep current images.</small>
+                    </div>
+                    <div id="edit-additional-images-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;">
+                        <!-- New additional images will be displayed here -->
+                    </div>
+                </div>
+            `,
+            didOpen: () => {
+                initializeEditAdditionalImages();
+                displayEditAdditionalImages();
+            },
+            preConfirm: () => {
+                // Ensure arrays exist before accessing length
+                const currentImagesCount = (editWizardData.currentAdditionalImages || []).filter(img => !(editWizardData.deletedImageIds || []).includes(img.id)).length;
+                const newImagesCount = (editWizardData.additionalImages || []).length;
+                const totalImages = currentImagesCount + newImagesCount;
+
+                if (totalImages > 5) {
+                    Swal.showValidationMessage('You can only have a maximum of 5 additional images total.');
                     return false;
                 }
                 return true;
             },
-            preDeny: () => {
-                // Clear any new image data when keeping current
-                editWizardData.croppedImageBlob = null;
-                if (editWizardData.croppieInstance) {
-                    editWizardData.croppieInstance.destroy();
-                    editWizardData.croppieInstance = null;
-                }
-                return true;
-            }
+            allowOutsideClick: false,
+            allowEscapeKey: false
         });
     }
 
@@ -167,9 +218,7 @@
 
         return Queue.fire({
             title: '🥽 Edit AR Model',
-            currentProgressStep: 2,
-            showDenyButton: true,
-            denyButtonText: 'Keep Current',
+            currentProgressStep: 3,
             html: `
                 <div style="text-align: left; padding: 0 20px;">
                     ${currentArHtml}
@@ -204,17 +253,11 @@
                 });
             },
             preConfirm: () => {
-                if (!editWizardData.arFile) {
-                    Swal.showValidationMessage('Please upload a new AR model file, or click "Keep Current" to maintain the existing AR model.');
-                    return false;
-                }
+                // Always allow proceeding - if no new AR file, keep current
                 return true;
             },
-            preDeny: () => {
-                // Clear any new AR file data when keeping current
-                editWizardData.arFile = null;
-                return true;
-            }
+            allowOutsideClick: false,
+            allowEscapeKey: false
         });
     }
 
@@ -228,6 +271,35 @@
             imagePreview = '<div style="width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">No Image</div>';
         }
 
+        // Calculate remaining additional images after deletions with safe array access
+        const currentImages = editWizardData.currentAdditionalImages || [];
+        const deletedIds = editWizardData.deletedImageIds || [];
+        const additionalImages = editWizardData.additionalImages || [];
+
+        const remainingCurrentImages = currentImages.filter(img => !deletedIds.includes(img.id));
+        const totalAdditionalImages = remainingCurrentImages.length + additionalImages.length;
+
+        const additionalImagesPreview = totalAdditionalImages > 0
+            ? `<div style="margin-top: 15px;">
+                <strong>📸 Additional Images (${totalAdditionalImages}):</strong>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    ${remainingCurrentImages.map(img =>
+                        `<div style="position: relative;">
+                            <img src="${img.url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #dee2e6;">
+                            <span style="position: absolute; bottom: -5px; right: -5px; background: #6c757d; color: white; border-radius: 50%; width: 15px; height: 15px; font-size: 8px; display: flex; align-items: center; justify-content: center;">📁</span>
+                        </div>`
+                    ).join('')}
+                    ${additionalImages.map(img =>
+                        `<div style="position: relative;">
+                            <img src="${URL.createObjectURL(img)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #28a745;">
+                            <span style="position: absolute; bottom: -5px; right: -5px; background: #28a745; color: white; border-radius: 50%; width: 15px; height: 15px; font-size: 8px; display: flex; align-items: center; justify-content: center;">✅</span>
+                        </div>`
+                    ).join('')}
+                </div>
+                ${deletedIds.length > 0 ? `<p style="color: #e74c3c; font-size: 0.9em; margin-top: 10px;">⚠️ ${deletedIds.length} image(s) will be deleted</p>` : ''}
+               </div>`
+            : '<div style="margin-top: 15px;"><strong>📸 Additional Images:</strong> <span style="color: #6c757d;">None</span></div>';
+
         let arInfo;
         if (editWizardData.arFile) {
             arInfo = `<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ ${editWizardData.arFile.name}</span>`;
@@ -239,12 +311,13 @@
 
         return Queue.fire({
             title: '📋 Review Changes',
-            currentProgressStep: 3,
+            currentProgressStep: 4,
             confirmButtonText: '💾 Update Product',
             confirmButtonColor: '#f39c12',
             showCancelButton: false,
             showDenyButton: true,
             denyButtonText: '← Go Back',
+            width: '800px',
             html: `
                 <div style="text-align: left; background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start; margin-bottom: 20px;">
@@ -261,10 +334,11 @@
                                     ${@json($categories->pluck('name', 'id'))[editWizardData.data.category_id]}
                                 </span>
                             </div>
-                            <div><strong>🥽 AR Model:</strong> ${arInfo}</div>
+                            <div style="margin-bottom: 15px;"><strong>🥽 AR Model:</strong> ${arInfo}</div>
+                            ${additionalImagesPreview}
                         </div>
                         <div style="text-align: center;">
-                            <div style="margin-bottom: 10px;"><strong>🖼️ Image Preview</strong></div>
+                            <div style="margin-bottom: 10px;"><strong>🖼️ Main Image</strong></div>
                             ${imagePreview}
                             ${editWizardData.croppedImageBlob ? '<p style="color: #28a745; font-size: 0.8em; margin-top: 5px;">New Image</p>' : ''}
                         </div>
@@ -373,20 +447,28 @@
 
         if (editWizardData.croppedImageBlob) {
             console.log('New image blob found:', editWizardData.croppedImageBlob);
-            console.log('Image blob size:', editWizardData.croppedImageBlob.size);
-            console.log('Image blob type:', editWizardData.croppedImageBlob.type);
             formData.append('image', editWizardData.croppedImageBlob, 'cropped_image.png');
-        } else {
-            console.log('No new image blob - keeping current image');
+        }
+
+        // Add new additional images
+        if (editWizardData.additionalImages.length > 0) {
+            console.log('New additional images found:', editWizardData.additionalImages.length);
+            editWizardData.additionalImages.forEach((file, index) => {
+                formData.append(`additional_images[${index}]`, file);
+            });
+        }
+
+        // Add deleted image IDs
+        if (editWizardData.deletedImageIds.length > 0) {
+            console.log('Images to delete:', editWizardData.deletedImageIds);
+            editWizardData.deletedImageIds.forEach((id, index) => {
+                formData.append(`deleted_image_ids[${index}]`, id);
+            });
         }
 
         if (editWizardData.arFile) {
             console.log('New AR file found:', editWizardData.arFile);
-            console.log('AR file size:', editWizardData.arFile.size);
-            console.log('AR file name:', editWizardData.arFile.name);
             formData.append('ar_model', editWizardData.arFile);
-        } else {
-            console.log('No new AR file - keeping current AR model');
         }
 
         // Log all FormData entries
@@ -418,10 +500,7 @@
                 type: 'POST',
                 data: formData,
                 processData: false,
-                contentType: false,
-                beforeSend: function(xhr) {
-                    console.log('Request headers:', xhr.getAllResponseHeaders());
-                }
+                contentType: false
             });
 
             console.log('Success response:', response);
@@ -437,8 +516,6 @@
             location.reload();
         } catch (response) {
             console.error('Error response:', response);
-            console.error('Error status:', response.status);
-            console.error('Error response text:', response.responseText);
 
             if (response.status === 422) {
                 let errors = response.responseJSON.errors;
@@ -462,5 +539,111 @@
                 });
             }
         }
+    }
+
+    function initializeEditAdditionalImages() {
+        const additionalImagesUpload = document.getElementById('edit-additional-images-upload');
+
+        additionalImagesUpload.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+
+            // Ensure arrays exist before calculating
+            const currentImages = editWizardData.currentAdditionalImages || [];
+            const deletedIds = editWizardData.deletedImageIds || [];
+            const additionalImages = editWizardData.additionalImages || [];
+
+            const remainingCurrentImages = currentImages.filter(img => !deletedIds.includes(img.id)).length;
+            const totalAfterUpload = remainingCurrentImages + additionalImages.length + files.length;
+
+            if (totalAfterUpload > 5) {
+                Swal.showValidationMessage('You can only have a maximum of 5 additional images total');
+                return;
+            }
+
+            files.forEach(file => {
+                if (file.size > 2 * 1024 * 1024) {
+                    Swal.showValidationMessage(`Image "${file.name}" is too large. Max size is 2MB.`);
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    Swal.showValidationMessage(`"${file.name}" is not a valid image file.`);
+                    return;
+                }
+
+                // Ensure additionalImages array exists
+                if (!editWizardData.additionalImages) {
+                    editWizardData.additionalImages = [];
+                }
+                editWizardData.additionalImages.push(file);
+            });
+
+            displayEditAdditionalImages();
+            additionalImagesUpload.value = '';
+        });
+    }
+
+    function displayEditAdditionalImages() {
+        const container = document.getElementById('edit-additional-images-preview');
+
+        // Ensure additionalImages array exists
+        const additionalImages = editWizardData.additionalImages || [];
+
+        container.innerHTML = additionalImages.map((file, index) => `
+            <div style="position: relative; border: 2px solid #28a745; border-radius: 8px; overflow: hidden;">
+                <img src="${URL.createObjectURL(file)}" style="width: 100%; height: 150px; object-fit: cover;">
+                <button type="button" onclick="removeNewAdditionalImage(${index})" style="position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 12px; cursor: pointer;">×</button>
+                <div style="background: rgba(40, 167, 69, 0.9); color: white; padding: 5px; font-size: 12px; text-align: center;">
+                    NEW: ${file.name.length > 12 ? file.name.substring(0, 12) + '...' : file.name}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function removeCurrentAdditionalImage(imageId) {
+        // Ensure deletedImageIds array exists
+        if (!editWizardData.deletedImageIds) {
+            editWizardData.deletedImageIds = [];
+        }
+
+        editWizardData.deletedImageIds.push(imageId);
+        const imageElement = document.querySelector(`[data-image-id="${imageId}"]`);
+        if (imageElement) {
+            imageElement.style.opacity = '0.5';
+            imageElement.style.filter = 'grayscale(100%)';
+            const button = imageElement.querySelector('button');
+            button.innerHTML = '↻';
+            button.onclick = () => restoreCurrentAdditionalImage(imageId);
+        }
+    }
+
+    function restoreCurrentAdditionalImage(imageId) {
+        // Ensure deletedImageIds array exists
+        if (!editWizardData.deletedImageIds) {
+            editWizardData.deletedImageIds = [];
+        }
+
+        const index = editWizardData.deletedImageIds.indexOf(imageId);
+        if (index > -1) {
+            editWizardData.deletedImageIds.splice(index, 1);
+        }
+        const imageElement = document.querySelector(`[data-image-id="${imageId}"]`);
+        if (imageElement) {
+            imageElement.style.opacity = '1';
+            imageElement.style.filter = 'none';
+            const button = imageElement.querySelector('button');
+            button.innerHTML = '×';
+            button.onclick = () => removeCurrentAdditionalImage(imageId);
+        }
+    }
+
+    function removeNewAdditionalImage(index) {
+        // Ensure additionalImages array exists
+        if (!editWizardData.additionalImages) {
+            editWizardData.additionalImages = [];
+        }
+
+        editWizardData.additionalImages.splice(index, 1);
+        displayEditAdditionalImages();
     }
 </script>

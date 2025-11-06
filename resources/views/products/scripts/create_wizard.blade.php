@@ -3,29 +3,34 @@
         data: {},
         croppieInstance: null,
         croppedImageBlob: null,
-        arFile: null
+        arFile: null,
+        additionalImages: [] // New property for additional images
     };
 
 
     async function createProduct() {
-        productWizardData = { data: {}, croppieInstance: null, croppedImageBlob: null, arFile: null };
+        productWizardData = { data: {}, croppieInstance: null, croppedImageBlob: null, arFile: null, additionalImages: [] };
 
         try {
             // Step 1: Product Details
             const step1Result = await showProductDetailsStep();
             if (!step1Result.isConfirmed) return;
 
-            // Step 2: Image Upload & Cropping
+            // Step 2: Main Image Upload & Cropping
             const step2Result = await showImageUploadStep();
             if (!step2Result.isConfirmed) return;
 
-            // Step 3: AR Model Upload
-            const step3Result = await showArModelStep();
+            // Step 3: Additional Product Images (NEW STEP)
+            const step3Result = await showAdditionalImagesStep();
             if (!step3Result.isConfirmed) return;
 
-            // Step 4: Review & Submit
-            const step4Result = await showReviewStep();
-            if (step4Result.isConfirmed) {
+            // Step 4: AR Model Upload
+            const step4Result = await showArModelStep();
+            if (!step4Result.isConfirmed) return;
+
+            // Step 5: Review & Submit
+            const step5Result = await showReviewStep();
+            if (step5Result.isConfirmed) {
                 await submitProduct();
             }
         } catch (error) {
@@ -95,16 +100,16 @@
 
     function showImageUploadStep() {
         return Queue.fire({
-            title: '🖼️ Product Image',
+            title: '🖼️ Main Product Image',
             currentProgressStep: 1,
             showDenyButton: true,
-            denyButtonText: 'Skip Image',
+            denyButtonText: 'Skip Main Image',
             html: `
                 <div style="text-align: left; padding: 0 20px;">
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">🖼️ Select Image</label>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">🖼️ Select Main Image</label>
                         <input id="image-upload" type="file" accept="image/*" style="margin-bottom: 15px; padding: 10px; border: 2px solid #e8f4f8; border-radius: 8px; width: 100%;">
-                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 2MB. Formats: JPG, PNG. Image will be cropped to 500x500 pixels.</small>
+                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 2MB. Formats: JPG, PNG. This will be the primary product image displayed in listings.</small>
                     </div>
                     <div id="crop-container" style="display: none; margin-top: 20px;">
                         <div id="croppie-container" style="width: 100%; height: 400px; border: 2px solid #e8f4f8; border-radius: 8px;"></div>
@@ -115,7 +120,7 @@
                     </div>
                     <div id="cropped-preview" style="display: none; text-align: center; margin-top: 20px;">
                         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #28a745;">
-                            <p style="color: #28a745; margin-bottom: 15px;"><strong>✅ Image Ready!</strong></p>
+                            <p style="color: #28a745; margin-bottom: 15px;"><strong>✅ Main Image Ready!</strong></p>
                             <img id="preview-img" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">
                             <div style="margin-top: 15px;">
                                 <button type="button" id="change-image" class="btn btn-warning btn-sm">🔄 Change Image</button>
@@ -129,7 +134,7 @@
             },
             preConfirm: () => {
                 if (!productWizardData.croppedImageBlob) {
-                    Swal.showValidationMessage('Please upload and crop an image, or click "Skip Image" to continue without one.');
+                    Swal.showValidationMessage('Please upload and crop a main image, or click "Skip Main Image" to continue without one.');
                     return false;
                 }
                 return true;
@@ -141,10 +146,44 @@
         });
     }
 
+    // NEW STEP: Additional Product Images
+    function showAdditionalImagesStep() {
+        return Queue.fire({
+            title: '📸 Additional Product Images',
+            currentProgressStep: 2,
+            showDenyButton: true,
+            denyButtonText: 'Skip Additional Images',
+            width: '800px',
+            html: `
+                <div style="text-align: left; padding: 0 20px;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">📸 Add More Product Images</label>
+                        <input id="additional-images-upload" type="file" accept="image/*" multiple style="margin-bottom: 15px; padding: 10px; border: 2px solid #e8f4f8; border-radius: 8px; width: 100%;">
+                        <small style="color: #7f8c8d; font-size: 12px;">Max 5 additional images. Max size: 2MB each. Formats: JPG, PNG. These will be shown in the product gallery.</small>
+                    </div>
+                    <div id="additional-images-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;">
+                        <!-- Additional images will be displayed here -->
+                    </div>
+                </div>
+            `,
+            didOpen: () => {
+                initializeAdditionalImages();
+                displayAdditionalImages();
+            },
+            preConfirm: () => {
+                return true; // Always allow proceeding since this step is optional
+            },
+            preDeny: () => {
+                productWizardData.additionalImages = [];
+                return true;
+            }
+        });
+    }
+
     function showArModelStep() {
         return Queue.fire({
             title: '🥽 AR Model',
-            currentProgressStep: 2,
+            currentProgressStep: 3,
             showDenyButton: true,
             denyButtonText: 'Skip AR Model',
             html: `
@@ -198,18 +237,30 @@
             ? `<img src="${URL.createObjectURL(productWizardData.croppedImageBlob)}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">`
             : '<div style="width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">No Image</div>';
 
+        const additionalImagesPreview = productWizardData.additionalImages.length > 0
+            ? `<div style="margin-top: 15px;">
+                <strong>📸 Additional Images (${productWizardData.additionalImages.length}):</strong>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    ${productWizardData.additionalImages.map(img =>
+                        `<img src="${URL.createObjectURL(img)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #28a745;">`
+                    ).join('')}
+                </div>
+               </div>`
+            : '<div style="margin-top: 15px;"><strong>📸 Additional Images:</strong> <span style="color: #6c757d;">None</span></div>';
+
         const arInfo = productWizardData.arFile
             ? `<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ ${productWizardData.arFile.name}</span>`
             : '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">❌ No AR Model</span>';
 
         return Queue.fire({
             title: '📋 Review & Create',
-            currentProgressStep: 3,
+            currentProgressStep: 4,
             confirmButtonText: '✅ Create Product',
             confirmButtonColor: '#28a745',
             showCancelButton: false,
             showDenyButton: true,
             denyButtonText: '← Go Back',
+            width: '800px',
             html: `
                 <div style="text-align: left; background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start; margin-bottom: 20px;">
@@ -227,9 +278,10 @@
                                 </span>
                             </div>
                             <div><strong>🥽 AR Model:</strong> ${arInfo}</div>
+                            ${additionalImagesPreview}
                         </div>
                         <div style="text-align: center;">
-                            <div style="margin-bottom: 10px;"><strong>🖼️ Image Preview</strong></div>
+                            <div style="margin-bottom: 10px;"><strong>🖼️ Main Image</strong></div>
                             ${imagePreview}
                         </div>
                     </div>
@@ -334,23 +386,22 @@
         formData.append('stock', productWizardData.data.stock);
         formData.append('category_id', productWizardData.data.category_id);
 
-        // Fix typo: croppiedImageBlob -> croppedImageBlob
         if (productWizardData.croppedImageBlob) {
-            console.log('Image blob found:', productWizardData.croppedImageBlob);
-            console.log('Image blob size:', productWizardData.croppedImageBlob.size);
-            console.log('Image blob type:', productWizardData.croppedImageBlob.type);
+            console.log('Main image blob found:', productWizardData.croppedImageBlob);
             formData.append('image', productWizardData.croppedImageBlob, 'cropped_image.png');
-        } else {
-            console.log('No image blob found');
+        }
+
+        // Add additional images
+        if (productWizardData.additionalImages.length > 0) {
+            console.log('Additional images found:', productWizardData.additionalImages.length);
+            productWizardData.additionalImages.forEach((file, index) => {
+                formData.append(`additional_images[${index}]`, file);
+            });
         }
 
         if (productWizardData.arFile) {
             console.log('AR file found:', productWizardData.arFile);
-            console.log('AR file size:', productWizardData.arFile.size);
-            console.log('AR file name:', productWizardData.arFile.name);
             formData.append('ar_model', productWizardData.arFile);
-        } else {
-            console.log('No AR file found');
         }
 
         // Log all FormData entries
@@ -382,10 +433,7 @@
                 type: 'POST',
                 data: formData,
                 processData: false,
-                contentType: false,
-                beforeSend: function(xhr) {
-                    console.log('Request headers:', xhr.getAllResponseHeaders());
-                }
+                contentType: false
             });
 
             console.log('Success response:', response);
@@ -401,8 +449,6 @@
             location.reload();
         } catch (response) {
             console.error('Error response:', response);
-            console.error('Error status:', response.status);
-            console.error('Error response text:', response.responseText);
 
             if (response.status === 422) {
                 let errors = response.responseJSON.errors;
@@ -428,4 +474,52 @@
         }
     }
 
+    function initializeAdditionalImages() {
+        const additionalImagesUpload = document.getElementById('additional-images-upload');
+
+        additionalImagesUpload.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+
+            if (productWizardData.additionalImages.length + files.length > 5) {
+                Swal.showValidationMessage('You can only upload a maximum of 5 additional images');
+                return;
+            }
+
+            files.forEach(file => {
+                if (file.size > 2 * 1024 * 1024) {
+                    Swal.showValidationMessage(`Image "${file.name}" is too large. Max size is 2MB.`);
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    Swal.showValidationMessage(`"${file.name}" is not a valid image file.`);
+                    return;
+                }
+
+                productWizardData.additionalImages.push(file);
+            });
+
+            displayAdditionalImages();
+            additionalImagesUpload.value = '';
+        });
+    }
+
+    function displayAdditionalImages() {
+        const container = document.getElementById('additional-images-preview');
+
+        container.innerHTML = productWizardData.additionalImages.map((file, index) => `
+            <div style="position: relative; border: 2px solid #28a745; border-radius: 8px; overflow: hidden;">
+                <img src="${URL.createObjectURL(file)}" style="width: 100%; height: 150px; object-fit: cover;">
+                <button type="button" onclick="removeAdditionalImage(${index})" style="position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 12px; cursor: pointer;">×</button>
+                <div style="background: rgba(0,0,0,0.7); color: white; padding: 5px; font-size: 12px; text-align: center;">
+                    ${file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function removeAdditionalImage(index) {
+        productWizardData.additionalImages.splice(index, 1);
+        displayAdditionalImages();
+    }
 </script>
