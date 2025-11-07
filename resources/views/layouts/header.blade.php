@@ -12,6 +12,13 @@
             </a>
         </li>
             <li class="sidebar-header"> Resource Management </li>
+
+          <li class="sidebar-item {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+              <a class="sidebar-link" href="{{ route('orders.index') }}">
+                  <i class="align-middle" data-feather="shopping-cart"></i>
+                  <span class="align-middle">Orders</span>
+              </a>
+          </li>
             <li class="sidebar-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
                 <a class="sidebar-link" href="{{ route('categories.index') }}">
                     <i class="align-middle" data-feather="layers"></i>

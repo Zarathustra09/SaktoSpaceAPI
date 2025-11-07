@@ -22,12 +22,18 @@
                     <th>Email</th>
                     <th>Email Status</th>
                     <th>Total Payments</th>
+                    <th>Total Orders</th>
                     <th>Joined</th>
                     <th>Action</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach($users as $user)
+                    @php
+                        $totalOrders = $user->payments->sum(function($payment) {
+                            return $payment->orders->count();
+                        });
+                    @endphp
                     <tr>
                         <td>
                             <span class="badge bg-secondary">#{{ $user->id }}</span>
@@ -46,6 +52,9 @@
                         <td>
                             <span class="badge bg-info">₱{{ number_format($user->payments->sum('amount'), 2) }}</span>
                             <small class="text-muted">({{ $user->payments->count() }} transactions)</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ $totalOrders }} orders</span>
                         </td>
                         <td>{{ $user->created_at->format('M d, Y') }}</td>
                         <td>
@@ -71,9 +80,9 @@
 <script>
     $(document).ready(function() {
         var table = $('#userTable').DataTable({
-            order: [[5, 'desc']], // Sort by joined date descending
+            order: [[6, 'desc']], // Sort by joined date descending
             columnDefs: [
-                { orderable: false, targets: [6] } // Disable sorting on Action column
+                { orderable: false, targets: [7] } // Disable sorting on Action column
             ]
         });
 

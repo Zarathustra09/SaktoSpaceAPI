@@ -209,7 +209,7 @@ class PaymentController extends Controller
             $shortBody = "Order #{$payment->id} status changed to {$payment->status}.";
 
             $notification = Notification::create(
-                'Order Status Updated',
+                'Payment Status Updated',
                 $shortBody
             );
 
