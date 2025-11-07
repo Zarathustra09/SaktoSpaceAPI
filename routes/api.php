@@ -58,6 +58,14 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
      Route::get('orders/{orderId}', [OrdersController::class, 'show']);
 
+     // New Orders routes
+     Route::get('orders/by-payment', [OrdersController::class, 'getOrdersByPayment']);
+     Route::get('orders/statuses', [OrdersController::class, 'getStatuses']);
+     Route::get('orders/status/{status}', [OrdersController::class, 'getOrdersByStatus']);
+     Route::patch('orders/{orderId}/status', [OrdersController::class, 'updateStatus']);
+     Route::get('payments/{paymentId}/orders', [OrdersController::class, 'showPayment']);
+     Route::get('products/{productId}/orders', [OrdersController::class, 'getOrdersByProduct']);
+
     Route::apiResource('ratings', App\Http\Controllers\API\RatingController::class);
 });
 

@@ -10,6 +10,27 @@ class Payment extends Model
     use HasFactory;
 
     /**
+     * Payment status constants
+     */
+    const STATUS_PENDING = 'Pending';
+    const STATUS_COMPLETED = 'Completed';
+    const STATUS_CANCELLED = 'Cancelled';
+    const STATUS_REFUNDED = 'Refunded';
+
+    /**
+     * Get all available payment statuses
+     */
+    public static function getStatuses()
+    {
+        return [
+            self::STATUS_PENDING,
+            self::STATUS_COMPLETED,
+            self::STATUS_CANCELLED,
+            self::STATUS_REFUNDED,
+        ];
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -20,7 +41,6 @@ class Payment extends Model
         'payment_method',
         'transaction_id',
         'status',
-        'purchased_items',
         'billing_address',
         'shipping_address',
         'payment_date',
@@ -31,12 +51,11 @@ class Payment extends Model
      *
      * @var array<string, string>
      */
-// In app/Models/Payment.php
     protected $casts = [
         'amount' => 'decimal:2',
-        'purchased_items' => 'array',
         'payment_date' => 'datetime',
     ];
+
     /**
      * Get the user who made the payment.
      */
@@ -46,42 +65,52 @@ class Payment extends Model
     }
 
     /**
-     * Get the order associated with this payment.
+     * Get the orders associated with this payment.
      */
-    public function order()
+    public function orders()
     {
-        return $this->belongsTo(Order::class);
+        return $this->hasMany(Order::class);
     }
 
     /**
-     * Get the products from purchased_items with full product details
+     * Get the products from orders with full product details
+     * This maintains backward compatibility with the old getPurchasedProductsAttribute
      */
     public function getPurchasedProductsAttribute()
     {
-        if (!$this->purchased_items || !is_array($this->purchased_items)) {
-            return collect();
-        }
-
-        return collect($this->purchased_items)->map(function ($item) {
-            $productId = $item['product_id'] ?? null;
-            $product = $productId ? Product::with('category')->find($productId) : null;
-
-            $price = isset($item['price']) ? (float) $item['price'] : 0.0;
-            $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+        return $this->orders->map(function ($order) {
+            $product = $order->product;
 
             return (object) [
-                'product_id' => $productId,
-                // Prefer DB product data for consistency with products.index
-                'name' => $product?->name ?? ($item['name'] ?? 'Unknown Product'),
-                'price' => $price,
-                'quantity' => $quantity,
-                'subtotal' => isset($item['subtotal']) ? (float) $item['subtotal'] : $price * $quantity,
-                'category_id' => $item['category_id'] ?? null,
-                'purchased_at' => $item['purchased_at'] ?? null,
+                'product_id' => $order->product_id,
+                'name' => $product?->name ?? $order->product_name,
+                'price' => $order->price,
+                'quantity' => $order->quantity,
+                'subtotal' => $order->subtotal,
+                'category_id' => $order->category_id,
+                'purchased_at' => $order->purchased_at?->toDateTimeString(),
                 'product' => $product,
-                'image' => $product?->image, // already stored as /storage/images/...
+                'image' => $product?->image,
                 'category' => $product && $product->category ? $product->category->name : 'Unknown',
             ];
         });
+    }
+
+    /**
+     * Backward compatibility: get purchased_items as array (for existing code)
+     */
+    public function getPurchasedItemsAttribute()
+    {
+        return $this->orders->map(function ($order) {
+            return [
+                'product_id' => $order->product_id,
+                'name' => $order->product_name,
+                'price' => (float) $order->price,
+                'quantity' => $order->quantity,
+                'subtotal' => (float) $order->subtotal,
+                'category_id' => $order->category_id,
+                'purchased_at' => $order->purchased_at?->toDateTimeString(),
+            ];
+        })->toArray();
     }
 }
