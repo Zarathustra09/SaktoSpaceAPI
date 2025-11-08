@@ -6,6 +6,7 @@
     use App\Models\Cart;
     use App\Models\Payment;
     use App\Models\Product;
+    use App\Models\Order;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Auth;
     use Illuminate\Support\Facades\Validator;
@@ -21,7 +22,6 @@
          */
         public function processPayment(Request $request)
        {
-           // In app/Http/Controllers/API/PaymentController.php
            $validator = Validator::make($request->all(), [
                'payment_method' => 'required|string',
                'billing_address' => 'required|string',
@@ -47,17 +47,14 @@
            try {
                DB::beginTransaction();
 
-               // Generate a random transaction ID with the format SKTO-123456789
                $transactionId = 'SKTO-' . mt_rand(100000000, 999999999);
-
-               $purchasedItems = [];
                $totalAmount = 0;
+               $orderItems = [];
 
-               // Convert cart items to purchased items with additional details
+               // Process cart items and calculate total
                foreach ($cart->items as $item) {
                    $product = Product::find($item['product_id']);
                    if ($product) {
-                       // Check if sufficient stock is available
                        if ($product->stock < $item['quantity']) {
                            DB::rollBack();
                            return response()->json([
@@ -66,18 +63,20 @@
                            ], 400);
                        }
 
-                       $purchasedItem = [
-                           'product_id' => $product->id,
-                           'name' => $product->name,
-                           'price' => $product->price,
-                           'quantity' => $item['quantity'],
-                           'subtotal' => $product->price * $item['quantity'],
-                           'category_id' => $product->category_id,
-                           'purchased_at' => now()->toDateTimeString(),
-                       ];
+                       $subtotal = $product->price * $item['quantity'];
+                       $totalAmount += $subtotal;
 
-                       $purchasedItems[] = $purchasedItem;
-                       $totalAmount += $purchasedItem['subtotal'];
+                       $orderItems[] = [
+                           'product_id' => $product->id,
+                           'quantity' => $item['quantity'],
+                           'price' => $product->price,
+                           'subtotal' => $subtotal,
+                           'product_name' => $product->name,
+                           'category_id' => $product->category_id,
+                           'purchased_at' => now(),
+                           'status' => Order::STATUS_PREPARING,
+                           'status_updated_at' => now(),
+                       ];
 
                        // Decrease product stock
                        $product->stock -= $item['quantity'];
@@ -88,22 +87,29 @@
                // Create the payment record
                $payment = Payment::create([
                    'user_id' => $cart->user_id,
-                   'order_id' => $request->order_id ?? null,
                    'amount' => $totalAmount,
                    'payment_method' => $request->payment_method,
                    'transaction_id' => $transactionId,
-                   'status' => $request->status ?? 'completed',
-                   'purchased_items' => $purchasedItems,
+                   'status' => $request->status ?? Payment::STATUS_COMPLETED,
                    'billing_address' => $request->billing_address,
                    'shipping_address' => $request->shipping_address,
                    'payment_date' => now(),
                ]);
+
+               // Create order records
+               foreach ($orderItems as $orderItem) {
+                   $orderItem['payment_id'] = $payment->id;
+                   Order::create($orderItem);
+               }
 
                // Clear the cart after successful payment
                $cart->items = [];
                $cart->save();
 
                DB::commit();
+
+               // Load orders for response
+               $payment->load('orders');
 
                return response()->json([
                    'success' => true,
@@ -125,6 +131,7 @@
                ], 500);
            }
        }
+
         /**
          * Get payment details
          *
@@ -202,7 +209,6 @@
                     ], 404);
                 }
 
-                // Check if sufficient stock is available
                 if ($product->stock < $request->quantity) {
                     DB::rollBack();
                     return response()->json([
@@ -211,35 +217,33 @@
                     ], 400);
                 }
 
-                // Generate a random transaction ID
                 $transactionId = 'SKTO-' . mt_rand(100000000, 999999999);
-
-                // Calculate total amount
                 $totalAmount = $product->price * $request->quantity;
-
-                // Create purchased item data
-                $purchasedItem = [
-                    'product_id' => $product->id,
-                    'name' => $product->name,
-                    'price' => $product->price,
-                    'quantity' => $request->quantity,
-                    'subtotal' => $totalAmount,
-                    'category_id' => $product->category_id,
-                    'purchased_at' => now()->toDateTimeString(),
-                ];
 
                 // Create the payment record
                 $payment = Payment::create([
                     'user_id' => Auth::id(),
-                    'order_id' => $request->order_id ?? null,
                     'amount' => $totalAmount,
                     'payment_method' => $request->payment_method,
                     'transaction_id' => $transactionId,
-                    'status' => $request->status ?? 'completed',
-                    'purchased_items' => [$purchasedItem],
+                    'status' => $request->status ?? Payment::STATUS_COMPLETED,
                     'billing_address' => $request->billing_address,
                     'shipping_address' => $request->shipping_address,
                     'payment_date' => now(),
+                ]);
+
+                // Create order record
+                Order::create([
+                    'payment_id' => $payment->id,
+                    'product_id' => $product->id,
+                    'quantity' => $request->quantity,
+                    'price' => $product->price,
+                    'subtotal' => $totalAmount,
+                    'product_name' => $product->name,
+                    'category_id' => $product->category_id,
+                    'purchased_at' => now(),
+                    'status' => Order::STATUS_PREPARING,
+                    'status_updated_at' => now(),
                 ]);
 
                 // Decrease product stock
@@ -247,6 +251,9 @@
                 $product->save();
 
                 DB::commit();
+
+                // Load orders for response
+                $payment->load('orders');
 
                 return response()->json([
                     'success' => true,

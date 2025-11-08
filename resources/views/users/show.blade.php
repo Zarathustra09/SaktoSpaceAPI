@@ -40,7 +40,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header">
                     <h5>📊 Payment Summary</h5>
                 </div>
@@ -52,22 +52,65 @@
                         </div>
                         <div class="col-6">
                             <h4 class="text-info">{{ $payments->total() }}</h4>
+                            <small class="text-muted">Total Payments</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <span class="badge bg-success">{{ $payments->where('status', 'Completed')->count() }}</span>
+                            <br><small>Completed</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="badge bg-warning">{{ $payments->where('status', 'Pending')->count() }}</span>
+                            <br><small>Pending</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="badge bg-danger">{{ $payments->where('status', 'Cancelled')->count() }}</span>
+                            <br><small>Cancelled</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="badge bg-info">{{ $payments->where('status', 'Refunded')->count() }}</span>
+                            <br><small>Refunded</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>📦 Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    @php
+                        $allOrders = $user->payments->flatMap(function($payment) { return $payment->orders; });
+                        $totalOrders = $allOrders->count();
+                    @endphp
+                    <div class="row text-center">
+                        <div class="col-12">
+                            <h4 class="text-success">{{ $totalOrders }}</h4>
                             <small class="text-muted">Total Orders</small>
                         </div>
                     </div>
                     <hr>
                     <div class="row text-center">
-                        <div class="col-4">
-                            <span class="badge bg-success">{{ $payments->where('status', 'completed')->count() }}</span>
-                            <br><small>Completed</small>
+                        <div class="col-6">
+                            <span class="badge bg-warning">{{ $allOrders->where('status', 'Preparing')->count() }}</span>
+                            <br><small>Preparing</small>
                         </div>
-                        <div class="col-4">
-                            <span class="badge bg-warning">{{ $payments->where('status', 'pending')->count() }}</span>
-                            <br><small>Pending</small>
+                        <div class="col-6">
+                            <span class="badge bg-info">{{ $allOrders->where('status', 'In Transit')->count() }}</span>
+                            <br><small>In Transit</small>
                         </div>
-                        <div class="col-4">
-                            <span class="badge bg-danger">{{ $payments->where('status', 'failed')->count() }}</span>
-                            <br><small>Failed</small>
+                    </div>
+                    <div class="row text-center mt-2">
+                        <div class="col-6">
+                            <span class="badge bg-success">{{ $allOrders->where('status', 'Delivered')->count() }}</span>
+                            <br><small>Delivered</small>
+                        </div>
+                        <div class="col-6">
+                            <span class="badge bg-danger">{{ $allOrders->where('status', 'Cancelled')->count() }}</span>
+                            <br><small>Cancelled</small>
                         </div>
                     </div>
                 </div>
@@ -80,10 +123,10 @@
                     <h5>💳 Transaction History</h5>
                     <select id="statusFilter" class="form-select" style="width: auto;">
                         <option value="">All Status</option>
-                        <option value="completed">Completed</option>
-                        <option value="pending">Pending</option>
-                        <option value="failed">Failed</option>
-                        <option value="refunded">Refunded</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Refunded">Refunded</option>
                     </select>
                 </div>
                 <div class="card-body">
@@ -95,7 +138,7 @@
                                 <th>Amount</th>
                                 <th>Payment Method</th>
                                 <th>Status</th>
-                                <th>Items Count</th>
+                                <th>Orders Count</th>
                                 <th>Date</th>
                                 <th>Action</th>
                             </tr>
@@ -116,16 +159,16 @@
                                     </td>
                                     <td>
                                         @switch($payment->status)
-                                            @case('completed')
+                                            @case('Completed')
                                                 <span class="badge bg-success">✅ Completed</span>
                                                 @break
-                                            @case('pending')
+                                            @case('Pending')
                                                 <span class="badge bg-warning text-dark">⏳ Pending</span>
                                                 @break
-                                            @case('failed')
-                                                <span class="badge bg-danger">❌ Failed</span>
+                                            @case('Cancelled')
+                                                <span class="badge bg-danger">❌ Cancelled</span>
                                                 @break
-                                            @case('refunded')
+                                            @case('Refunded')
                                                 <span class="badge bg-secondary">🔄 Refunded</span>
                                                 @break
                                             @default
@@ -133,7 +176,7 @@
                                         @endswitch
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">{{ count($payment->purchased_items ?? []) }} items</span>
+                                        <span class="badge bg-primary">{{ $payment->orders->count() }} orders</span>
                                     </td>
                                     <td>{{ $payment->payment_date ? $payment->payment_date->format('M d, Y H:i') : 'N/A' }}</td>
                                     <td>
@@ -186,33 +229,38 @@
         $.get('/payments/' + paymentId, function(response) {
             const payment = response.data;
 
-            // Create purchased items HTML
+            // Create orders HTML using the new structure
             let itemsHtml = '';
-            if (payment.purchased_items && payment.purchased_items.length > 0) {
+            if (payment.orders && payment.orders.length > 0) {
                 itemsHtml = '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-                itemsHtml += '<h6 style="color: #495057; margin-bottom: 15px;">🛍️ Purchased Items:</h6>';
+                itemsHtml += '<h6 style="color: #495057; margin-bottom: 15px;">📦 Orders in this Payment:</h6>';
 
-                payment.purchased_items.forEach((item, index) => {
+                payment.orders.forEach((order, index) => {
+                    const statusBadge = getOrderStatusBadge(order.status);
                     itemsHtml += `
-                        <div style="border-bottom: 1px solid #dee2e6; padding: 10px 0; ${index === payment.purchased_items.length - 1 ? 'border-bottom: none;' : ''}">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="border-bottom: 1px solid #dee2e6; padding: 10px 0; ${index === payment.orders.length - 1 ? 'border-bottom: none;' : ''}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <div>
-                                    <strong style="color: #2c3e50;">${item.name}</strong>
+                                    <strong style="color: #2c3e50;">${order.product_name}</strong>
                                     <br>
-                                    <small style="color: #6c757d;">Qty: ${item.quantity} × ₱${parseFloat(item.price).toFixed(2)}</small>
+                                    <small style="color: #6c757d;">Order ID: #${order.id}</small>
                                 </div>
                                 <div style="text-align: right;">
-                                    <span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
-                                        ₱${parseFloat(item.subtotal).toFixed(2)}
-                                    </span>
+                                    ${statusBadge}
                                 </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <small style="color: #6c757d;">Qty: ${order.quantity} × ₱${parseFloat(order.price).toFixed(2)}</small>
+                                <span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                                    ₱${parseFloat(order.subtotal).toFixed(2)}
+                                </span>
                             </div>
                         </div>
                     `;
                 });
                 itemsHtml += '</div>';
             } else {
-                itemsHtml = '<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; color: #856404;">No items found</div>';
+                itemsHtml = '<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; color: #856404;">No orders found</div>';
             }
 
             const statusBadge = getStatusBadge(payment.status);
@@ -258,13 +306,13 @@
                             <div style="margin-bottom: 15px;">
                                 <strong style="color: #34495e;">📅 Payment Date:</strong>
                                 <br>
-                                <span style="color: #7f8c8d;">${new Date(payment.payment_date).toLocaleDateString('en-US', {
+                                <span style="color: #7f8c8d;">${payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-US', {
                                     year: 'numeric',
                                     month: 'long',
                                     day: 'numeric',
                                     hour: '2-digit',
                                     minute: '2-digit'
-                                })}</span>
+                                }) : 'N/A'}</span>
                             </div>
                         </div>
 
@@ -299,12 +347,24 @@
 
     function getStatusBadge(status) {
         const badges = {
-            'completed': '<span style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">✅ Completed</span>',
-            'pending': '<span style="background: #ffc107; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">⏳ Pending</span>',
-            'failed': '<span style="background: #dc3545; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">❌ Failed</span>',
-            'refunded': '<span style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🔄 Refunded</span>'
+            'Completed': '<span style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">✅ Completed</span>',
+            'Pending': '<span style="background: #ffc107; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">⏳ Pending</span>',
+            'Cancelled': '<span style="background: #dc3545; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">❌ Cancelled</span>',
+            'Refunded': '<span style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🔄 Refunded</span>'
         };
         return badges[status] || `<span style="background: #f8f9fa; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #dee2e6;">${status}</span>`;
+    }
+
+    function getOrderStatusBadge(status) {
+        const badges = {
+            'Preparing': '<span style="background: #ffc107; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em;">⏳ Preparing</span>',
+            'To Ship': '<span style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em;">📦 To Ship</span>',
+            'In Transit': '<span style="background: #6f42c1; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em;">🚚 In Transit</span>',
+            'Out for Delivery': '<span style="background: #e83e8c; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em;">🚛 Out for Delivery</span>',
+            'Delivered': '<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em;">✅ Delivered</span>',
+            'Cancelled': '<span style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em;">❌ Cancelled</span>'
+        };
+        return badges[status] || `<span style="background: #f8f9fa; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; border: 1px solid #dee2e6;">${status}</span>`;
     }
 </script>
 @endpush

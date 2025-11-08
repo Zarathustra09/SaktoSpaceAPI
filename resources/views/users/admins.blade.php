@@ -14,6 +14,11 @@
             </div>
         </div>
         <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Admin Management:</strong> Promote users to Admin role or demote existing Admins. At least one Admin must remain in the system.
+            </div>
+
             <table id="userAdminTable" class="table table-hover table-striped">
                 <thead class="thead-light">
                 <tr>
@@ -21,6 +26,7 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Orders</th>
                     <th>Joined</th>
                     <th>Action</th>
                 </tr>
@@ -29,31 +35,51 @@
                 @foreach($users as $user)
                     @php
                         $isAdmin = $user->hasRole('Admin');
+                        $totalOrders = $user->payments->sum(function($payment) {
+                            return $payment->orders->count();
+                        });
                     @endphp
                     <tr>
                         <td><span class="badge bg-secondary">#{{ $user->id }}</span></td>
-                        <td><strong>{{ $user->name }}</strong></td>
+                        <td>
+                            <strong>{{ $user->name }}</strong>
+                            @if($user->id === auth()->id())
+                                <small class="badge bg-info ms-1">You</small>
+                            @endif
+                        </td>
                         <td>{{ $user->email }}</td>
                         <td>
                             @if($isAdmin)
-                                <span class="badge bg-success">Admin</span>
+                                <span class="badge bg-success"><i class="fas fa-crown me-1"></i>Admin</span>
                             @else
-                                <span class="badge bg-warning text-dark">User</span>
+                                <span class="badge bg-warning text-dark"><i class="fas fa-user me-1"></i>User</span>
                             @endif
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ $totalOrders }} orders</span>
+                            <br><small class="text-muted">₱{{ number_format($user->payments->sum('amount'), 2) }}</small>
                         </td>
                         <td>{{ $user->created_at->format('M d, Y') }}</td>
                         <td>
                             <div class="btn-group" role="group">
                                 @if(!$isAdmin)
-                                    <form class="d-inline" method="POST" action="{{ route('admin.users.promote', $user) }}" onsubmit="return confirm('Promote this user to Admin?');">
+                                    <form class="d-inline" method="POST" action="{{ route('admin.users.promote', $user) }}" onsubmit="return confirm('Promote {{ $user->name }} to Admin role?');">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Promote to Admin">⬆️ Promote</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Promote to Admin">
+                                            <i class="fas fa-arrow-up me-1"></i>Promote
+                                        </button>
                                     </form>
                                 @else
-                                    <form class="d-inline" method="POST" action="{{ route('admin.users.demote', $user) }}" onsubmit="return confirm('Demote this Admin to regular user?');">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Demote from Admin">⬇️ Demote</button>
-                                    </form>
+                                    @if($user->id !== auth()->id())
+                                        <form class="d-inline" method="POST" action="{{ route('admin.users.demote', $user) }}" onsubmit="return confirm('Demote {{ $user->name }} from Admin role to regular user?');">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Demote from Admin">
+                                                <i class="fas fa-arrow-down me-1"></i>Demote
+                                            </button>
+                                        </form>
+                                    @else
+                                        <small class="text-muted">Cannot demote yourself</small>
+                                    @endif
                                 @endif
                             </div>
                         </td>
@@ -70,9 +96,9 @@
 <script>
     $(document).ready(function() {
         var table = $('#userAdminTable').DataTable({
-            order: [[4, 'desc']], // Sort by joined date descending
+            order: [[5, 'desc']], // Sort by joined date descending
             columnDefs: [
-                { orderable: false, targets: [5] } // Disable sorting on Action column
+                { orderable: false, targets: [6] } // Disable sorting on Action column
             ]
         });
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\CategoryController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Admin\UserAdminController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,12 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
     Route::resource('payments', PaymentController::class)->only(['index', 'show', 'update']);
     Route::resource('users', UserController::class)->only(['index', 'show']);
+
+    // Order Management Routes
+    Route::resource('orders', OrderController::class)->only(['index', 'show']);
+    Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+    Route::post('orders/bulk-update-status', [OrderController::class, 'bulkUpdateStatus'])->name('orders.bulk-update-status');
+    Route::get('orders/stats', [OrderController::class, 'getStats'])->name('orders.stats');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
