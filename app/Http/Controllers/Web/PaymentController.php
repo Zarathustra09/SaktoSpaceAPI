@@ -35,7 +35,7 @@ class PaymentController extends Controller
      */
     public function show(Payment $payment): JsonResponse
     {
-        $payment->load(['user', 'orders.product']);
+        $payment->load(['user', 'orders.product.category', 'orders.category']);
         return response()->json([
             'success' => true,
             'data' => $payment

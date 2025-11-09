@@ -58,8 +58,11 @@
                                 @case('failed')
                                     <span class="badge bg-danger">❌ Failed</span>
                                     @break
+                                @case('cancelled')
+                                    <span class="badge bg-secondary">🚫 Cancelled</span>
+                                    @break
                                 @case('refunded')
-                                    <span class="badge bg-secondary">🔄 Refunded</span>
+                                    <span class="badge bg-info">🔄 Refunded</span>
                                     @break
                                 @default
                                     <span class="badge bg-light text-dark">{{ $payment->status }}</span>
@@ -121,33 +124,93 @@
         $.get('/payments/' + paymentId, function(response) {
             const payment = response.data;
 
-            // Create purchased items HTML
-            let itemsHtml = '';
-            if (payment.purchased_items && payment.purchased_items.length > 0) {
-                itemsHtml = '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-                itemsHtml += '<h6 style="color: #495057; margin-bottom: 15px;">🛍️ Purchased Items:</h6>';
+            // Create orders HTML with detailed product information
+            let ordersHtml = '';
+            if (payment.orders && payment.orders.length > 0) {
+                ordersHtml = '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+                ordersHtml += '<h6 style="color: #495057; margin-bottom: 15px;">📦 Order Items:</h6>';
 
-                payment.purchased_items.forEach((item, index) => {
-                    itemsHtml += `
-                        <div style="border-bottom: 1px solid #dee2e6; padding: 10px 0; ${index === payment.purchased_items.length - 1 ? 'border-bottom: none;' : ''}">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong style="color: #2c3e50;">${item.name}</strong>
-                                    <br>
-                                    <small style="color: #6c757d;">Qty: ${item.quantity} × ₱${parseFloat(item.price).toFixed(2)}</small>
-                                </div>
-                                <div style="text-align: right;">
-                                    <span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
-                                        ₱${parseFloat(item.subtotal).toFixed(2)}
-                                    </span>
+                payment.orders.forEach((order, index) => {
+                    const product = order.product;
+                    const categoryName = product?.category?.name || order.category?.name || 'Uncategorized';
+                    const productImage = product?.image;
+                    const orderStatusBadge = getOrderStatusBadge(order.status);
+                    const purchasedDate = order.purchased_at ? new Date(order.purchased_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    }) : 'N/A';
+
+                    ordersHtml += `
+                        <div style="border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 12px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="display: flex; gap: 15px;">
+                                ${productImage ? `
+                                    <div style="flex-shrink: 0;">
+                                        <img src="${productImage}" alt="${order.product_name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef;">
+                                    </div>
+                                ` : ''}
+                                <div style="flex: 1;">
+                                    <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 8px;">
+                                        <div style="flex: 1;">
+                                            <h6 style="margin: 0; color: #2c3e50; font-size: 1em;">${order.product_name}</h6>
+                                            <small style="color: #6c757d; display: block; margin-top: 2px;">
+                                                🏷️ ${categoryName} • 📅 ${purchasedDate}
+                                            </small>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            ${orderStatusBadge}
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                        <div style="display: flex; gap: 15px; align-items: center;">
+                                            <span style="background: #e9ecef; padding: 4px 8px; border-radius: 12px; font-size: 0.8em; color: #495057;">
+                                                Qty: <strong>${order.quantity}</strong>
+                                            </span>
+                                            <span style="color: #6c757d; font-size: 0.9em;">
+                                                @ ₱${parseFloat(order.price).toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 6px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em; box-shadow: 0 2px 4px rgba(40,167,69,0.3);">
+                                                ₱${parseFloat(order.subtotal).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    ${order.status_updated_at ? `
+                                        <div style="margin-top: 8px; padding: 6px 10px; background: #f1f3f4; border-radius: 4px; font-size: 0.8em; color: #5f6368;">
+                                            🕒 Status updated: ${new Date(order.status_updated_at).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
                     `;
                 });
-                itemsHtml += '</div>';
+
+                // Add summary section
+                const totalItems = payment.orders.reduce((sum, order) => sum + order.quantity, 0);
+                ordersHtml += `
+                    <div style="border-top: 2px solid #dee2e6; padding-top: 15px; margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #495057; font-weight: 500;">
+                                📊 Total: <strong>${totalItems}</strong> items across <strong>${payment.orders.length}</strong> orders
+                            </span>
+                            <span style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 8px 15px; border-radius: 20px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,123,255,0.3);">
+                                Total: ₱${parseFloat(payment.amount).toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                ordersHtml += '</div>';
             } else {
-                itemsHtml = '<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; color: #856404;">No items found</div>';
+                ordersHtml = '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: center; color: #856404; border: 1px solid #ffeaa7;">📦 No orders found for this payment</div>';
             }
 
             const statusBadge = getStatusBadge(payment.status);
@@ -156,7 +219,7 @@
             Swal.fire({
                 title: `<h3 style="color: #2c3e50;">💳 Payment Details</h3>`,
                 html: `
-                    <div style="text-align: left; padding: 20px; max-height: 500px; overflow-y: auto;">
+                    <div style="text-align: left; padding: 20px; max-height: 600px; overflow-y: auto;">
                         <div style="background: #e9ecef; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                                 <div>
@@ -203,7 +266,7 @@
                             </div>
                         </div>
 
-                        ${itemsHtml}
+                        ${ordersHtml}
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
@@ -220,7 +283,7 @@
                 icon: 'info',
                 confirmButtonColor: '#3498db',
                 confirmButtonText: '👍 Got it',
-                width: '700px'
+                width: '800px'
             });
         }).fail(function() {
             Swal.fire({
@@ -368,9 +431,22 @@
             'completed': '<span style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">✅ Completed</span>',
             'pending': '<span style="background: #ffc107; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">⏳ Pending</span>',
             'failed': '<span style="background: #dc3545; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">❌ Failed</span>',
-            'refunded': '<span style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🔄 Refunded</span>'
+            'cancelled': '<span style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🚫 Cancelled</span>',
+            'refunded': '<span style="background: #17a2b8; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🔄 Refunded</span>'
         };
         return badges[status] || `<span style="background: #f8f9fa; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #dee2e6;">${status}</span>`;
+    }
+
+    function getOrderStatusBadge(status) {
+        const badges = {
+            'Preparing': '<span style="background: #ffc107; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">⏳ Preparing</span>',
+            'To Ship': '<span style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">📦 To Ship</span>',
+            'In Transit': '<span style="background: #6f42c1; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">🚛 In Transit</span>',
+            'Out for Delivery': '<span style="background: #fd7e14; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">🚚 Out for Delivery</span>',
+            'Delivered': '<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">✅ Delivered</span>',
+            'Cancelled': '<span style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">❌ Cancelled</span>'
+        };
+        return badges[status] || `<span style="background: #f8f9fa; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; border: 1px solid #dee2e6;">${status || 'Unknown'}</span>`;
     }
 </script>
 @endpush
