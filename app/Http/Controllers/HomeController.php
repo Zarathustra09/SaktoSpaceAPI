@@ -30,19 +30,14 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $user = auth()->user();
-
         // Get basic statistics
         $totalProducts = Product::count();
         $totalCategories = Category::count();
 
-        // Get user's cart and items count - handle JSON array structure
-        $userCart = $user->cart;
-        $cartItemsCount = 0;
-        if ($userCart) {
-            // Use the items() method that returns a collection from JSON array
-            $cartItemsCount = $userCart->items()->count();
-        }
+        // Get total cart items across all users
+        $cartItemsCount = Cart::all()->sum(function($cart) {
+            return $cart->items()->count();
+        });
 
         // ADMIN-WIDE: fetch all completed payments (normalize status) and materialize
         $completedPayments = Payment::whereRaw('LOWER(TRIM(status)) = ?', ['completed'])->get();
@@ -257,7 +252,6 @@ class HomeController extends Controller
             'monthlySpending',
             'recentPayments',
             'categoriesWithCounts',
-            'userCart',
             'topPurchasedProducts',
             'topSpentProducts',
             'categorySpendingData',

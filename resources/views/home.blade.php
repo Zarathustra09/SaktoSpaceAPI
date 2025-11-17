@@ -17,8 +17,8 @@
                     <!-- Welcome Message -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <h4>Welcome back, {{ Auth::user()->name }}!</h4>
-                            <p class="text-muted">Here's your personalized shopping analytics</p>
+                            <h4>Welcome, {{ Auth::user()->name }}!</h4>
+                            <p class="text-muted">Here's the complete store analytics across all users</p>
                         </div>
                     </div>
 
