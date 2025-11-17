@@ -12,10 +12,11 @@ class Payment extends Model
     /**
      * Payment status constants
      */
-    const STATUS_PENDING = 'Pending';
-    const STATUS_COMPLETED = 'Completed';
-    const STATUS_CANCELLED = 'Cancelled';
-    const STATUS_REFUNDED = 'Refunded';
+    const STATUS_PENDING = 'pending';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_CANCELLED = 'cancelled';
+    const STATUS_FAILED = 'failed';
+    const STATUS_REFUNDED = 'refunded';
 
     /**
      * Get all available payment statuses
@@ -26,6 +27,7 @@ class Payment extends Model
             self::STATUS_PENDING,
             self::STATUS_COMPLETED,
             self::STATUS_CANCELLED,
+            self::STATUS_FAILED,
             self::STATUS_REFUNDED,
         ];
     }
@@ -43,6 +45,8 @@ class Payment extends Model
         'status',
         'billing_address',
         'shipping_address',
+        'recipient_name',
+        'recipient_contact',
         'payment_date',
     ];
 

@@ -72,8 +72,9 @@ class ProductController extends Controller
                 $validator->errors()->add('ar_model', 'The ar model must be a file of type: glb, gltf, usdz.');
             }
 
-            if ($file->getSize() > 20480 * 1024) {
-                $validator->errors()->add('ar_model', 'The ar model must not be greater than 20MB.');
+            // Allow files up to 100MB
+            if ($file->getSize() > 102400 * 1024) {
+                $validator->errors()->add('ar_model', 'The ar model must not be greater than 100MB.');
             }
         }
 
@@ -290,8 +291,9 @@ class ProductController extends Controller
                 $validator->errors()->add('ar_model', 'The ar model must be a file of type: glb, gltf, usdz.');
             }
 
-            if ($file->getSize() > 20480 * 1024) {
-                $validator->errors()->add('ar_model', 'The ar model must not be greater than 20MB.');
+            // Allow files up to 100MB
+            if ($file->getSize() > 102400 * 1024) {
+                $validator->errors()->add('ar_model', 'The ar model must not be greater than 100MB.');
             }
         }
 

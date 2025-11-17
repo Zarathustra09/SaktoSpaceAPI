@@ -79,7 +79,8 @@
             `,
             didOpen: () => {
                 if (editWizardData.data.category_id) {
-                    document.getElementById('edit-product-category').value = editWizardData.data.category_id;
+                    document.getElementById('edit-product-category').value = editWizardData.data
+                        .category_id;
                 }
             },
             preConfirm: () => {
@@ -94,19 +95,25 @@
                     return false;
                 }
 
-                editWizardData.data = { name, description, price, stock, category_id };
+                editWizardData.data = {
+                    name,
+                    description,
+                    price,
+                    stock,
+                    category_id
+                };
                 return true;
             }
         });
     }
 
     function showEditImageUploadStep() {
-        const currentImageHtml = editWizardData.currentImage
-            ? `<div style="margin-bottom: 15px; text-align: center;">
+        const currentImageHtml = editWizardData.currentImage ?
+            `<div style="margin-bottom: 15px; text-align: center;">
                 <p style="margin-bottom: 10px; font-weight: 600; color: #34495e;">Current Main Image:</p>
                 <img src="${editWizardData.currentImage}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6;">
-               </div>`
-            : '<p style="color: #6c757d; text-align: center; margin-bottom: 15px;">No current main image</p>';
+               </div>` :
+            '<p style="color: #6c757d; text-align: center; margin-bottom: 15px;">No current main image</p>';
 
         return Queue.fire({
             title: '🖼️ Edit Main Product Image',
@@ -156,8 +163,8 @@
             editWizardData.currentAdditionalImages = [];
         }
 
-        const currentImagesHtml = editWizardData.currentAdditionalImages.length > 0
-            ? `<div style="margin-bottom: 20px;">
+        const currentImagesHtml = editWizardData.currentAdditionalImages.length > 0 ?
+            `<div style="margin-bottom: 20px;">
                 <p style="margin-bottom: 10px; font-weight: 600; color: #34495e;">Current Additional Images:</p>
                 <div id="current-additional-images" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
                     ${editWizardData.currentAdditionalImages.map(img => `
@@ -167,8 +174,8 @@
                         </div>
                     `).join('')}
                 </div>
-               </div>`
-            : '<p style="color: #6c757d; margin-bottom: 15px;">No current additional images</p>';
+               </div>` :
+            '<p style="color: #6c757d; margin-bottom: 15px;">No current additional images</p>';
 
         return Queue.fire({
             title: '📸 Edit Additional Product Images',
@@ -193,7 +200,8 @@
             },
             preConfirm: () => {
                 // Ensure arrays exist before accessing length
-                const currentImagesCount = (editWizardData.currentAdditionalImages || []).filter(img => !(editWizardData.deletedImageIds || []).includes(img.id)).length;
+                const currentImagesCount = (editWizardData.currentAdditionalImages || []).filter(img => !(
+                    editWizardData.deletedImageIds || []).includes(img.id)).length;
                 const newImagesCount = (editWizardData.additionalImages || []).length;
                 const totalImages = currentImagesCount + newImagesCount;
 
@@ -209,12 +217,12 @@
     }
 
     function showEditArModelStep() {
-        const currentArHtml = editWizardData.currentArModel
-            ? `<div style="margin-bottom: 15px; text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #28a745;">
+        const currentArHtml = editWizardData.currentArModel ?
+            `<div style="margin-bottom: 15px; text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #28a745;">
                 <p style="margin-bottom: 5px; font-weight: 600; color: #34495e;">Current AR Model:</p>
                 <span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ Available</span>
-               </div>`
-            : '<p style="color: #6c757d; text-align: center; margin-bottom: 15px;">No current AR model</p>';
+               </div>` :
+            '<p style="color: #6c757d; text-align: center; margin-bottom: 15px;">No current AR model</p>';
 
         return Queue.fire({
             title: '🥽 Edit AR Model',
@@ -225,7 +233,7 @@
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">🥽 Upload New AR Model File</label>
                         <input id="edit-ar-upload" type="file" accept=".glb,.gltf,.usdz" style="margin-bottom: 15px; padding: 10px; border: 2px solid #e8f4f8; border-radius: 8px; width: 100%;">
-                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 20MB. Formats: GLB, GLTF, USDZ. Leave empty to keep current AR model.</small>
+                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 100MB. Formats: GLB, GLTF, USDZ. Leave empty to keep current AR model.</small>
                     </div>
                     <div id="edit-ar-file-info" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #28a745; margin-top: 15px;">
                         <p style="color: #28a745; margin: 0;"><strong>✅ New AR Model Selected!</strong></p>
@@ -241,13 +249,14 @@
                 arUpload.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
-                        if (file.size > 20 * 1024 * 1024) {
-                            Swal.showValidationMessage('AR model size must be less than 20MB');
+                        if (file.size > 100 * 1024 * 1024) {
+                            Swal.showValidationMessage('AR model size must be less than 100MB');
                             arUpload.value = '';
                             return;
                         }
                         editWizardData.arFile = file;
-                        arFileName.textContent = `File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                        arFileName.textContent =
+                            `File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
                         arFileInfo.style.display = 'block';
                     }
                 });
@@ -264,11 +273,14 @@
     function showEditReviewStep() {
         let imagePreview;
         if (editWizardData.croppedImageBlob) {
-            imagePreview = `<img src="${URL.createObjectURL(editWizardData.croppedImageBlob)}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">`;
+            imagePreview =
+                `<img src="${URL.createObjectURL(editWizardData.croppedImageBlob)}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">`;
         } else if (editWizardData.currentImage) {
-            imagePreview = `<img src="${editWizardData.currentImage}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6;">`;
+            imagePreview =
+                `<img src="${editWizardData.currentImage}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #dee2e6;">`;
         } else {
-            imagePreview = '<div style="width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">No Image</div>';
+            imagePreview =
+                '<div style="width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">No Image</div>';
         }
 
         // Calculate remaining additional images after deletions with safe array access
@@ -279,8 +291,8 @@
         const remainingCurrentImages = currentImages.filter(img => !deletedIds.includes(img.id));
         const totalAdditionalImages = remainingCurrentImages.length + additionalImages.length;
 
-        const additionalImagesPreview = totalAdditionalImages > 0
-            ? `<div style="margin-top: 15px;">
+        const additionalImagesPreview = totalAdditionalImages > 0 ?
+            `<div style="margin-top: 15px;">
                 <strong>📸 Additional Images (${totalAdditionalImages}):</strong>
                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     ${remainingCurrentImages.map(img =>
@@ -297,16 +309,19 @@
                     ).join('')}
                 </div>
                 ${deletedIds.length > 0 ? `<p style="color: #e74c3c; font-size: 0.9em; margin-top: 10px;">⚠️ ${deletedIds.length} image(s) will be deleted</p>` : ''}
-               </div>`
-            : '<div style="margin-top: 15px;"><strong>📸 Additional Images:</strong> <span style="color: #6c757d;">None</span></div>';
+               </div>` :
+            '<div style="margin-top: 15px;"><strong>📸 Additional Images:</strong> <span style="color: #6c757d;">None</span></div>';
 
         let arInfo;
         if (editWizardData.arFile) {
-            arInfo = `<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ ${editWizardData.arFile.name}</span>`;
+            arInfo =
+                `<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ ${editWizardData.arFile.name}</span>`;
         } else if (editWizardData.currentArModel) {
-            arInfo = '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">📁 Current AR Model</span>';
+            arInfo =
+                '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">📁 Current AR Model</span>';
         } else {
-            arInfo = '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">❌ No AR Model</span>';
+            arInfo =
+                '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">❌ No AR Model</span>';
         }
 
         return Queue.fire({
@@ -378,8 +393,15 @@
                     }
 
                     editWizardData.croppieInstance = new Croppie(croppieContainer, {
-                        viewport: { width: 300, height: 300, type: 'square' },
-                        boundary: { width: 350, height: 350 },
+                        viewport: {
+                            width: 300,
+                            height: 300,
+                            type: 'square'
+                        },
+                        boundary: {
+                            width: 350,
+                            height: 350
+                        },
                         showZoomer: true,
                         enableResize: false,
                         enableOrientation: true
@@ -397,7 +419,10 @@
             if (editWizardData.croppieInstance) {
                 editWizardData.croppieInstance.result({
                     type: 'blob',
-                    size: { width: 500, height: 500 },
+                    size: {
+                        width: 500,
+                        height: 500
+                    },
                     format: 'png',
                     quality: 0.9
                 }).then(function(blob) {
@@ -485,10 +510,19 @@
             }
         }
 
-        // Show loading
+        // Show loading with progress bar
         Swal.fire({
-            title: 'Updating Product...',
-            html: '<div class="spinner-border text-warning" role="status"></div>',
+            title: 'Uploading Changes...',
+            html: `
+                <div style="text-align:left; padding: 20px;">
+                    <div id="upload-progress-container" style="width:100%; margin-top:10px;">
+                        <div style="background:#e9ecef; border-radius:6px; overflow:hidden; height:20px;">
+                            <div id="upload-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg, #f39c12, #f1c40f); transition: width 0.3s ease;"></div>
+                        </div>
+                        <div id="upload-progress-text" style="margin-top:12px; font-size:14px; text-align:center; color:#34495e; font-weight:600;">Preparing upload... 0%</div>
+                    </div>
+                </div>
+            `,
             allowOutsideClick: false,
             showConfirmButton: false
         });
@@ -500,7 +534,20 @@
                 type: 'POST',
                 data: formData,
                 processData: false,
-                contentType: false
+                contentType: false,
+                xhr: function() {
+                    var xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(evt) {
+                        if (evt.lengthComputable) {
+                            var percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                            const bar = document.getElementById('upload-progress-bar');
+                            const text = document.getElementById('upload-progress-text');
+                            if (bar) bar.style.width = percentComplete + '%';
+                            if (text) text.textContent = `Uploading... ${percentComplete}%`;
+                        }
+                    }, false);
+                    return xhr;
+                }
             });
 
             console.log('Success response:', response);

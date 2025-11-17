@@ -26,6 +26,8 @@
                'payment_method' => 'required|string',
                'billing_address' => 'required|string',
                'shipping_address' => 'required|string',
+               'recipient_name' => 'nullable|string',
+               'recipient_contact' => 'nullable|string',
            ]);
 
            if ($validator->fails()) {
@@ -93,6 +95,8 @@
                    'status' => $request->status ?? Payment::STATUS_COMPLETED,
                    'billing_address' => $request->billing_address,
                    'shipping_address' => $request->shipping_address,
+                   'recipient_name' => $request->recipient_name ?? null,
+                   'recipient_contact' => $request->recipient_contact ?? null,
                    'payment_date' => now(),
                ]);
 
@@ -118,6 +122,8 @@
                        'payment_id' => $payment->id,
                        'transaction_id' => $transactionId,
                        'amount' => $payment->amount,
+                        'recipient_name' => $payment->recipient_name,
+                        'recipient_contact' => $payment->recipient_contact,
                        'purchased_items' => $payment->purchased_items
                    ]
                ]);
@@ -188,6 +194,8 @@
                 'payment_method' => 'required|string',
                 'billing_address' => 'required|string',
                 'shipping_address' => 'required|string',
+                'recipient_name' => 'nullable|string',
+                'recipient_contact' => 'nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -229,6 +237,8 @@
                     'status' => $request->status ?? Payment::STATUS_COMPLETED,
                     'billing_address' => $request->billing_address,
                     'shipping_address' => $request->shipping_address,
+                       'recipient_name' => $request->recipient_name ?? null,
+                       'recipient_contact' => $request->recipient_contact ?? null,
                     'payment_date' => now(),
                 ]);
 
@@ -262,6 +272,8 @@
                         'payment_id' => $payment->id,
                         'transaction_id' => $transactionId,
                         'amount' => $payment->amount,
+                        'recipient_name' => $payment->recipient_name,
+                        'recipient_contact' => $payment->recipient_contact,
                         'product' => [
                             'name' => $product->name,
                             'quantity' => $request->quantity,

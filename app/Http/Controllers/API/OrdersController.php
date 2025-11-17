@@ -41,6 +41,8 @@ class OrdersController extends Controller
                     'product' => $order->product,
                     'payment_status' => $order->payment->status,
                     'payment_method' => $order->payment->payment_method,
+                    'recipient_name' => $order->payment->recipient_name,
+                    'recipient_contact' => $order->payment->recipient_contact,
                     'purchased_at' => $order->purchased_at,
                     'created_at' => $order->created_at,
                 ];
@@ -72,6 +74,8 @@ class OrdersController extends Controller
                     'payment_method' => $payment->payment_method,
                     'billing_address' => $payment->billing_address,
                     'shipping_address' => $payment->shipping_address,
+                    'recipient_name' => $payment->recipient_name,
+                    'recipient_contact' => $payment->recipient_contact,
                     'payment_date' => $payment->payment_date,
                     'orders' => $payment->orders->map(function ($order) {
                         return [
@@ -138,6 +142,8 @@ class OrdersController extends Controller
             'payment_method' => $order->payment->payment_method,
             'billing_address' => $order->payment->billing_address,
             'shipping_address' => $order->payment->shipping_address,
+            'recipient_name' => $order->payment->recipient_name,
+            'recipient_contact' => $order->payment->recipient_contact,
             'purchased_at' => $order->purchased_at,
             'created_at' => $order->created_at,
         ];
@@ -286,6 +292,8 @@ class OrdersController extends Controller
             'payment_method' => $payment->payment_method,
             'billing_address' => $payment->billing_address,
             'shipping_address' => $payment->shipping_address,
+                'recipient_name' => $payment->recipient_name,
+                'recipient_contact' => $payment->recipient_contact,
             'payment_date' => $payment->payment_date,
             'orders' => $payment->orders->map(function ($order) {
                 return [
