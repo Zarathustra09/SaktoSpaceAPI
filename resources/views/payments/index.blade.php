@@ -1,154 +1,169 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">💳 Payment History</h2>
-            <div class="d-flex gap-2">
-                <select id="statusFilter" class="form-select" style="width: auto;">
-                    <option value="">All Status</option>
-                    <option value="completed">Completed</option>
-                    <option value="pending">Pending</option>
-                    <option value="failed">Failed</option>
-                    <option value="refunded">Refunded</option>
-                </select>
-                <button id="exportExcel" class="btn btn-success">
-                    📊 Export Excel
-                </button>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">💳 Payment History</h2>
+                <div class="d-flex gap-2">
+                    <select id="statusFilter" class="form-select" style="width: auto;">
+                        <option value="">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Failed</option>
+                        <option value="refunded">Refunded</option>
+                    </select>
+                    <button id="exportExcel" class="btn btn-success">
+                        📊 Export Excel
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <table id="paymentTable" class="table table-hover table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Status</th>
+                            <th>Items Count</th>
+                            <th>Payment Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($payments as $payment)
+                            <tr>
+                                <td>
+                                    <code
+                                        style="background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.875em;">
+                                        {{ $payment->transaction_id }}
+                                    </code>
+                                </td>
+                                <td>{{ $payment->user ? $payment->user->name : 'N/A' }}</td>
+                                <td>
+                                    <span class="fw-bold text-success">₱{{ number_format($payment->amount, 2) }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ ucfirst($payment->payment_method) }}</span>
+                                </td>
+                                <td>
+                                    @switch($payment->status)
+                                        @case('completed')
+                                            <span class="badge bg-success">✅ Completed</span>
+                                        @break
+
+                                        @case('pending')
+                                            <span class="badge bg-warning text-dark">⏳ Pending</span>
+                                        @break
+
+                                        @case('failed')
+                                            <span class="badge bg-danger">❌ Failed</span>
+                                        @break
+
+                                        @case('cancelled')
+                                            <span class="badge bg-secondary">🚫 Cancelled</span>
+                                        @break
+
+                                        @case('refunded')
+                                            <span class="badge bg-info">🔄 Refunded</span>
+                                        @break
+
+                                        @default
+                                            <span class="badge bg-light text-dark">{{ $payment->status }}</span>
+                                    @endswitch
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ count($payment->purchased_items ?? []) }} items</span>
+                                </td>
+                                <td>{{ $payment->payment_date ? $payment->payment_date->format('M d, Y H:i') : 'N/A' }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-info"
+                                            onclick="viewPayment({{ $payment->id }})" title="View Details">
+                                            👁️ View
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning"
+                                            onclick="editPayment({{ $payment->id }})" title="Update Status">
+                                            ✏️ Update
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="card-body">
-            <table id="paymentTable" class="table table-hover table-striped">
-                <thead class="thead-light">
-                <tr>
-                    <th>Transaction ID</th>
-                    <th>User</th>
-                    <th>Amount</th>
-                    <th>Payment Method</th>
-                    <th>Status</th>
-                    <th>Items Count</th>
-                    <th>Payment Date</th>
-                    <th>Action</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($payments as $payment)
-                    <tr>
-                        <td>
-                            <code style="background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.875em;">
-                                {{ $payment->transaction_id }}
-                            </code>
-                        </td>
-                        <td>{{ $payment->user ? $payment->user->name : 'N/A' }}</td>
-                        <td>
-                            <span class="fw-bold text-success">₱{{ number_format($payment->amount, 2) }}</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-info">{{ ucfirst($payment->payment_method) }}</span>
-                        </td>
-                        <td>
-                            @switch($payment->status)
-                                @case('completed')
-                                    <span class="badge bg-success">✅ Completed</span>
-                                    @break
-                                @case('pending')
-                                    <span class="badge bg-warning text-dark">⏳ Pending</span>
-                                    @break
-                                @case('failed')
-                                    <span class="badge bg-danger">❌ Failed</span>
-                                    @break
-                                @case('cancelled')
-                                    <span class="badge bg-secondary">🚫 Cancelled</span>
-                                    @break
-                                @case('refunded')
-                                    <span class="badge bg-info">🔄 Refunded</span>
-                                    @break
-                                @default
-                                    <span class="badge bg-light text-dark">{{ $payment->status }}</span>
-                            @endswitch
-                        </td>
-                        <td>
-                            <span class="badge bg-primary">{{ count($payment->purchased_items ?? []) }} items</span>
-                        </td>
-                        <td>{{ $payment->payment_date ? $payment->payment_date->format('M d, Y H:i') : 'N/A' }}</td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-info" onclick="viewPayment({{ $payment->id }})" title="View Details">
-                                    👁️ View
-                                </button>
-                                <button class="btn btn-sm btn-outline-warning" onclick="editPayment({{ $payment->id }})" title="Update Status">
-                                    ✏️ Update
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        </div>
     </div>
-</div>
 @endsection
 
 @push('scripts')
-<script>
-    $(document).ready(function() {
-        var table = $('#paymentTable').DataTable({
-            order: [[6, 'desc']], // Sort by payment date descending
-            columnDefs: [
-                { orderable: false, targets: [7] } // Disable sorting on Action column
-            ]
+    <script>
+        $(document).ready(function() {
+            var table = $('#paymentTable').DataTable({
+                order: [
+                    [6, 'desc']
+                ], // Sort by payment date descending
+                columnDefs: [{
+                        orderable: false,
+                        targets: [7]
+                    } // Disable sorting on Action column
+                ]
+            });
+
+            // Status filter functionality
+            $('#statusFilter').on('change', function() {
+                var filterValue = this.value;
+                if (filterValue === '') {
+                    table.column(4).search('').draw();
+                } else {
+                    table.column(4).search(filterValue).draw();
+                }
+            });
+
+            // Export respecting current status filter
+            $('#exportExcel').on('click', function() {
+                const status = $('#statusFilter').val();
+                const base = '{{ route('payments.export') }}';
+                const url = status ? `${base}?status=${encodeURIComponent(status)}` : base;
+                window.location.href = url;
+            });
         });
 
-        // Status filter functionality
-        $('#statusFilter').on('change', function() {
-            var filterValue = this.value;
-            if (filterValue === '') {
-                table.column(4).search('').draw();
-            } else {
-                table.column(4).search(filterValue).draw();
-            }
-        });
+        function viewPayment(paymentId) {
+            $.get('/payments/' + paymentId, function(response) {
+                const payment = response.data;
 
-        // Export respecting current status filter
-        $('#exportExcel').on('click', function() {
-            const status = $('#statusFilter').val();
-            const base = '{{ route('payments.export') }}';
-            const url = status ? `${base}?status=${encodeURIComponent(status)}` : base;
-            window.location.href = url;
-        });
-    });
+                // Create orders HTML with detailed product information
+                let ordersHtml = '';
+                if (payment.orders && payment.orders.length > 0) {
+                    ordersHtml =
+                        '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+                    ordersHtml += '<h6 style="color: #495057; margin-bottom: 15px;">📦 Order Items:</h6>';
 
-    function viewPayment(paymentId) {
-        $.get('/payments/' + paymentId, function(response) {
-            const payment = response.data;
+                    payment.orders.forEach((order, index) => {
+                        const product = order.product;
+                        const categoryName = product?.category?.name || order.category?.name ||
+                            'Uncategorized';
+                        const productImage = product?.image;
+                        const orderStatusBadge = getOrderStatusBadge(order.status);
+                        const purchasedDate = order.purchased_at ? new Date(order.purchased_at)
+                            .toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            }) : 'N/A';
 
-            // Create orders HTML with detailed product information
-            let ordersHtml = '';
-            if (payment.orders && payment.orders.length > 0) {
-                ordersHtml = '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">';
-                ordersHtml += '<h6 style="color: #495057; margin-bottom: 15px;">📦 Order Items:</h6>';
-
-                payment.orders.forEach((order, index) => {
-                    const product = order.product;
-                    const categoryName = product?.category?.name || order.category?.name || 'Uncategorized';
-                    const productImage = product?.image;
-                    const orderStatusBadge = getOrderStatusBadge(order.status);
-                    const purchasedDate = order.purchased_at ? new Date(order.purchased_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                    }) : 'N/A';
-
-                    ordersHtml += `
+                        ordersHtml += `
                         <div style="border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 12px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div style="display: flex; gap: 15px;">
                                 ${productImage ? `
-                                    <div style="flex-shrink: 0;">
-                                        <img src="${productImage}" alt="${order.product_name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef;">
-                                    </div>
-                                ` : ''}
+                                        <div style="flex-shrink: 0;">
+                                            <img src="${productImage}" alt="${order.product_name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef;">
+                                        </div>
+                                    ` : ''}
                                 <div style="flex: 1;">
                                     <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 8px;">
                                         <div style="flex: 1;">
@@ -179,24 +194,24 @@
                                     </div>
 
                                     ${order.status_updated_at ? `
-                                        <div style="margin-top: 8px; padding: 6px 10px; background: #f1f3f4; border-radius: 4px; font-size: 0.8em; color: #5f6368;">
-                                            🕒 Status updated: ${new Date(order.status_updated_at).toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}
-                                        </div>
-                                    ` : ''}
+                                            <div style="margin-top: 8px; padding: 6px 10px; background: #f1f3f4; border-radius: 4px; font-size: 0.8em; color: #5f6368;">
+                                                🕒 Status updated: ${new Date(order.status_updated_at).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </div>
+                                        ` : ''}
                                 </div>
                             </div>
                         </div>
                     `;
-                });
+                    });
 
-                // Add summary section
-                const totalItems = payment.orders.reduce((sum, order) => sum + order.quantity, 0);
-                ordersHtml += `
+                    // Add summary section
+                    const totalItems = payment.orders.reduce((sum, order) => sum + order.quantity, 0);
+                    ordersHtml += `
                     <div style="border-top: 2px solid #dee2e6; padding-top: 15px; margin-top: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #495057; font-weight: 500;">
@@ -208,17 +223,19 @@
                         </div>
                     </div>
                 `;
-                ordersHtml += '</div>';
-            } else {
-                ordersHtml = '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: center; color: #856404; border: 1px solid #ffeaa7;">📦 No orders found for this payment</div>';
-            }
+                    ordersHtml += '</div>';
+                } else {
+                    ordersHtml =
+                        '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: center; color: #856404; border: 1px solid #ffeaa7;">📦 No orders found for this payment</div>';
+                }
 
-            const statusBadge = getStatusBadge(payment.status);
-            const paymentMethodBadge = `<span style="background: #17a2b8; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">${payment.payment_method.toUpperCase()}</span>`;
+                const statusBadge = getStatusBadge(payment.status);
+                const paymentMethodBadge =
+                    `<span style="background: #17a2b8; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">${payment.payment_method.toUpperCase()}</span>`;
 
-            Swal.fire({
-                title: `<h3 style="color: #2c3e50;">💳 Payment Details</h3>`,
-                html: `
+                Swal.fire({
+                    title: `<h3 style="color: #2c3e50;">💳 Payment Details</h3>`,
+                    html: `
                     <div style="text-align: left; padding: 20px; max-height: 600px; overflow-y: auto;">
                         <div style="background: #e9ecef; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
@@ -244,6 +261,19 @@
                                     <strong style="color: #34495e;">💳 Payment Method:</strong>
                                     <br>
                                     ${paymentMethodBadge}
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <strong style="color: #34495e;">👥 Recipient:</strong>
+                                    <br>
+                                    <span style="color: #7f8c8d;">${payment.recipient_name || 'N/A'}</span>
+                                </div>
+                                <div>
+                                    <strong style="color: #34495e;">📞 Contact:</strong>
+                                    <br>
+                                    <span style="color: #7f8c8d;">${payment.recipient_contact || 'N/A'}</span>
                                 </div>
                             </div>
 
@@ -280,28 +310,28 @@
                         </div>
                     </div>
                 `,
-                icon: 'info',
-                confirmButtonColor: '#3498db',
-                confirmButtonText: '👍 Got it',
-                width: '800px'
+                    icon: 'info',
+                    confirmButtonColor: '#3498db',
+                    confirmButtonText: '👍 Got it',
+                    width: '800px'
+                });
+            }).fail(function() {
+                Swal.fire({
+                    title: '❌ Error!',
+                    text: 'Could not load payment details.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
             });
-        }).fail(function() {
-            Swal.fire({
-                title: '❌ Error!',
-                text: 'Could not load payment details.',
-                icon: 'error',
-                confirmButtonColor: '#e74c3c'
-            });
-        });
-    }
+        }
 
-    function editPayment(paymentId) {
-        $.get('/payments/' + paymentId, function(response) {
-            const payment = response.data;
+        function editPayment(paymentId) {
+            $.get('/payments/' + paymentId, function(response) {
+                const payment = response.data;
 
-            Swal.fire({
-                title: `<h3 style="color: #2c3e50; margin-bottom: 20px;">✏️ Update Payment Status</h3>`,
-                html: `
+                Swal.fire({
+                    title: `<h3 style="color: #2c3e50; margin-bottom: 20px;">✏️ Update Payment Status</h3>`,
+                    html: `
                     <div style="text-align: left; padding: 0 20px;">
                         <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -336,117 +366,119 @@
                         </div>
                     </div>
                 `,
-                width: '500px',
-                padding: '30px',
-                showCancelButton: true,
-                confirmButtonText: '💾 Update Status',
-                confirmButtonColor: '#f39c12',
-                cancelButtonText: '❌ Cancel',
-                cancelButtonColor: '#95a5a6',
-                customClass: {
-                    confirmButton: 'btn btn-warning btn-lg',
-                    cancelButton: 'btn btn-secondary btn-lg'
-                },
-                preConfirm: () => {
-                    const status = document.getElementById('payment-status').value;
+                    width: '500px',
+                    padding: '30px',
+                    showCancelButton: true,
+                    confirmButtonText: '💾 Update Status',
+                    confirmButtonColor: '#f39c12',
+                    cancelButtonText: '❌ Cancel',
+                    cancelButtonColor: '#95a5a6',
+                    customClass: {
+                        confirmButton: 'btn btn-warning btn-lg',
+                        cancelButton: 'btn btn-secondary btn-lg'
+                    },
+                    preConfirm: () => {
+                        const status = document.getElementById('payment-status').value;
 
-                    if (!status) {
-                        Swal.showValidationMessage('❗ Please select a payment status');
-                        return false;
+                        if (!status) {
+                            Swal.showValidationMessage('❗ Please select a payment status');
+                            return false;
+                        }
+
+                        return {
+                            status: status
+                        }
                     }
-
-                    return {
-                        status: status
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        updatePayment(paymentId, result.value);
                     }
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    updatePayment(paymentId, result.value);
-                }
-            });
-        }).fail(function() {
-            Swal.fire({
-                title: '❌ Error!',
-                text: 'Could not load payment details.',
-                icon: 'error',
-                confirmButtonColor: '#e74c3c'
-            });
-        });
-    }
-
-    function updatePayment(paymentId, data) {
-        // Show loading
-        Swal.fire({
-            title: 'Updating Payment Status...',
-            html: '<div class="spinner-border text-warning" role="status"></div>',
-            allowOutsideClick: false,
-            showConfirmButton: false
-        });
-
-        $.ajax({
-            url: '/payments/' + paymentId,
-            type: 'PUT',
-            data: {
-                _token: '{{ csrf_token() }}',
-                ...data
-            },
-            success: function(response) {
-                Swal.fire({
-                    title: '🎉 Updated!',
-                    text: 'Payment status has been updated successfully.',
-                    icon: 'success',
-                    confirmButtonColor: '#27ae60',
-                    confirmButtonText: '👍 Great!'
-                }).then(() => {
-                    location.reload();
                 });
-            },
-            error: function(response) {
-                if (response.status === 422) {
-                    let errors = response.responseJSON.errors;
-                    let errorMessages = '';
-                    for (let field in errors) {
-                        errorMessages += `• ${errors[field].join(', ')}<br>`;
+            }).fail(function() {
+                Swal.fire({
+                    title: '❌ Error!',
+                    text: 'Could not load payment details.',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            });
+        }
+
+        function updatePayment(paymentId, data) {
+            // Show loading
+            Swal.fire({
+                title: 'Updating Payment Status...',
+                html: '<div class="spinner-border text-warning" role="status"></div>',
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
+
+            $.ajax({
+                url: '/payments/' + paymentId,
+                type: 'PUT',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    ...data
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: '🎉 Updated!',
+                        text: 'Payment status has been updated successfully.',
+                        icon: 'success',
+                        confirmButtonColor: '#27ae60',
+                        confirmButtonText: '👍 Great!'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(response) {
+                    if (response.status === 422) {
+                        let errors = response.responseJSON.errors;
+                        let errorMessages = '';
+                        for (let field in errors) {
+                            errorMessages += `• ${errors[field].join(', ')}<br>`;
+                        }
+                        Swal.fire({
+                            title: '❌ Validation Error',
+                            html: `<div style="text-align: left; color: #e74c3c;">${errorMessages}</div>`,
+                            icon: 'error',
+                            confirmButtonColor: '#e74c3c'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: '❌ Error!',
+                            text: 'There was an error updating the payment status.',
+                            icon: 'error',
+                            confirmButtonColor: '#e74c3c'
+                        });
                     }
-                    Swal.fire({
-                        title: '❌ Validation Error',
-                        html: `<div style="text-align: left; color: #e74c3c;">${errorMessages}</div>`,
-                        icon: 'error',
-                        confirmButtonColor: '#e74c3c'
-                    });
-                } else {
-                    Swal.fire({
-                        title: '❌ Error!',
-                        text: 'There was an error updating the payment status.',
-                        icon: 'error',
-                        confirmButtonColor: '#e74c3c'
-                    });
                 }
-            }
-        });
-    }
+            });
+        }
 
-    function getStatusBadge(status) {
-        const badges = {
-            'completed': '<span style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">✅ Completed</span>',
-            'pending': '<span style="background: #ffc107; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">⏳ Pending</span>',
-            'failed': '<span style="background: #dc3545; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">❌ Failed</span>',
-            'cancelled': '<span style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🚫 Cancelled</span>',
-            'refunded': '<span style="background: #17a2b8; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🔄 Refunded</span>'
-        };
-        return badges[status] || `<span style="background: #f8f9fa; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #dee2e6;">${status}</span>`;
-    }
+        function getStatusBadge(status) {
+            const badges = {
+                'completed': '<span style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">✅ Completed</span>',
+                'pending': '<span style="background: #ffc107; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">⏳ Pending</span>',
+                'failed': '<span style="background: #dc3545; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">❌ Failed</span>',
+                'cancelled': '<span style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🚫 Cancelled</span>',
+                'refunded': '<span style="background: #17a2b8; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">🔄 Refunded</span>'
+            };
+            return badges[status] ||
+                `<span style="background: #f8f9fa; color: #212529; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #dee2e6;">${status}</span>`;
+        }
 
-    function getOrderStatusBadge(status) {
-        const badges = {
-            'Preparing': '<span style="background: #ffc107; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">⏳ Preparing</span>',
-            'To Ship': '<span style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">📦 To Ship</span>',
-            'In Transit': '<span style="background: #6f42c1; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">🚛 In Transit</span>',
-            'Out for Delivery': '<span style="background: #fd7e14; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">🚚 Out for Delivery</span>',
-            'Delivered': '<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">✅ Delivered</span>',
-            'Cancelled': '<span style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">❌ Cancelled</span>'
-        };
-        return badges[status] || `<span style="background: #f8f9fa; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; border: 1px solid #dee2e6;">${status || 'Unknown'}</span>`;
-    }
-</script>
+        function getOrderStatusBadge(status) {
+            const badges = {
+                'Preparing': '<span style="background: #ffc107; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">⏳ Preparing</span>',
+                'To Ship': '<span style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">📦 To Ship</span>',
+                'In Transit': '<span style="background: #6f42c1; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">🚛 In Transit</span>',
+                'Out for Delivery': '<span style="background: #fd7e14; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">🚚 Out for Delivery</span>',
+                'Delivered': '<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">✅ Delivered</span>',
+                'Cancelled': '<span style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500;">❌ Cancelled</span>'
+            };
+            return badges[status] ||
+                `<span style="background: #f8f9fa; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; border: 1px solid #dee2e6;">${status || 'Unknown'}</span>`;
+        }
+    </script>
 @endpush

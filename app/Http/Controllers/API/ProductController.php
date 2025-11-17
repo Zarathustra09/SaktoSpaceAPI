@@ -68,8 +68,9 @@
                        $validator->errors()->add('ar_model', 'The ar model must be a file of type: glb, gltf, usdz.');
                    }
 
-                   if ($file->getSize() > 20480 * 1024) {
-                       $validator->errors()->add('ar_model', 'The ar model must not be greater than 20MB.');
+                   // Allow files up to 100MB
+                   if ($file->getSize() > 102400 * 1024) {
+                       $validator->errors()->add('ar_model', 'The ar model must not be greater than 100MB.');
                    }
                }
 
@@ -172,7 +173,7 @@
                     'stock' => 'sometimes|integer|min:0',
                     'category_id' => 'sometimes|exists:categories,id',
                     'image' => 'nullable|file|image|max:2048',
-                    'ar_model' => 'nullable|file|mimes:glb,gltf,usdz|max:20480',
+                    'ar_model' => 'nullable|file|mimes:glb,gltf,usdz|max:102400',
                     // Removed ar_scale and ar_placement_type from validation
                 ]);
 
@@ -237,7 +238,7 @@
                 }
 
                 $validator = Validator::make($request->all(), [
-                    'ar_model' => 'required|file|mimes:glb,gltf,usdz|max:20480', // 20MB max
+                    'ar_model' => 'required|file|mimes:glb,gltf,usdz|max:102400', // 100MB max
                 ]);
 
                 if ($validator->fails()) {

@@ -9,7 +9,13 @@
 
 
     async function createProduct() {
-        productWizardData = { data: {}, croppieInstance: null, croppedImageBlob: null, arFile: null, additionalImages: [] };
+        productWizardData = {
+            data: {},
+            croppieInstance: null,
+            croppedImageBlob: null,
+            arFile: null,
+            additionalImages: []
+        };
 
         try {
             // Step 1: Product Details
@@ -92,7 +98,13 @@
                     return false;
                 }
 
-                productWizardData.data = { name, description, price, stock, category_id };
+                productWizardData.data = {
+                    name,
+                    description,
+                    price,
+                    stock,
+                    category_id
+                };
                 return true;
             }
         });
@@ -134,7 +146,9 @@
             },
             preConfirm: () => {
                 if (!productWizardData.croppedImageBlob) {
-                    Swal.showValidationMessage('Please upload and crop a main image, or click "Skip Main Image" to continue without one.');
+                    Swal.showValidationMessage(
+                        'Please upload and crop a main image, or click "Skip Main Image" to continue without one.'
+                    );
                     return false;
                 }
                 return true;
@@ -183,7 +197,7 @@
     function showArModelStep() {
         return Queue.fire({
             title: '🥽 AR Model',
-            currentProgressStep: 3,
+            currentProgressStep: 2,
             showDenyButton: true,
             denyButtonText: 'Skip AR Model',
             html: `
@@ -191,7 +205,7 @@
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">🥽 AR Model File</label>
                         <input id="ar-upload" type="file" accept=".glb,.gltf,.usdz" style="margin-bottom: 15px; padding: 10px; border: 2px solid #e8f4f8; border-radius: 8px; width: 100%;">
-                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 20MB. Formats: GLB, GLTF, USDZ. This step is optional.</small>
+                        <small style="color: #7f8c8d; font-size: 12px;">Max size: 100MB. Formats: GLB, GLTF, USDZ. This step is optional.</small>
                     </div>
                     <div id="ar-file-info" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #28a745; margin-top: 15px;">
                         <p style="color: #28a745; margin: 0;"><strong>✅ AR Model Selected!</strong></p>
@@ -207,20 +221,23 @@
                 arUpload.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
-                        if (file.size > 20 * 1024 * 1024) {
-                            Swal.showValidationMessage('AR model size must be less than 20MB');
+                        if (file.size > 100 * 1024 * 1024) {
+                            Swal.showValidationMessage('AR model size must be less than 100MB');
                             arUpload.value = '';
                             return;
                         }
                         productWizardData.arFile = file;
-                        arFileName.textContent = `File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                        arFileName.textContent =
+                            `File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
                         arFileInfo.style.display = 'block';
                     }
                 });
             },
             preConfirm: () => {
                 if (!productWizardData.arFile) {
-                    Swal.showValidationMessage('Please upload an AR model file, or click "Skip AR Model" to continue without one.');
+                    Swal.showValidationMessage(
+                        'Please upload an AR model file, or click "Skip AR Model" to continue without one.'
+                    );
                     return false;
                 }
                 return true;
@@ -233,28 +250,28 @@
     }
 
     function showReviewStep() {
-        const imagePreview = productWizardData.croppedImageBlob
-            ? `<img src="${URL.createObjectURL(productWizardData.croppedImageBlob)}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">`
-            : '<div style="width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">No Image</div>';
+        const imagePreview = productWizardData.croppedImageBlob ?
+            `<img src="${URL.createObjectURL(productWizardData.croppedImageBlob)}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">` :
+            '<div style="width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">No Image</div>';
 
-        const additionalImagesPreview = productWizardData.additionalImages.length > 0
-            ? `<div style="margin-top: 15px;">
+        const additionalImagesPreview = productWizardData.additionalImages.length > 0 ?
+            `<div style="margin-top: 15px;">
                 <strong>📸 Additional Images (${productWizardData.additionalImages.length}):</strong>
                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                     ${productWizardData.additionalImages.map(img =>
                         `<img src="${URL.createObjectURL(img)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #28a745;">`
                     ).join('')}
                 </div>
-               </div>`
-            : '<div style="margin-top: 15px;"><strong>📸 Additional Images:</strong> <span style="color: #6c757d;">None</span></div>';
+               </div>` :
+            '<div style="margin-top: 15px;"><strong>📸 Additional Images:</strong> <span style="color: #6c757d;">None</span></div>';
 
-        const arInfo = productWizardData.arFile
-            ? `<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ ${productWizardData.arFile.name}</span>`
-            : '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">❌ No AR Model</span>';
+        const arInfo = productWizardData.arFile ?
+            `<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">✅ ${productWizardData.arFile.name}</span>` :
+            '<span style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9em;">❌ No AR Model</span>';
 
         return Queue.fire({
             title: '📋 Review & Create',
-            currentProgressStep: 4,
+            currentProgressStep: 3,
             confirmButtonText: '✅ Create Product',
             confirmButtonColor: '#28a745',
             showCancelButton: false,
@@ -320,8 +337,15 @@
                     }
 
                     productWizardData.croppieInstance = new Croppie(croppieContainer, {
-                        viewport: { width: 300, height: 300, type: 'square' },
-                        boundary: { width: 350, height: 350 },
+                        viewport: {
+                            width: 300,
+                            height: 300,
+                            type: 'square'
+                        },
+                        boundary: {
+                            width: 350,
+                            height: 350
+                        },
                         showZoomer: true,
                         enableResize: false,
                         enableOrientation: true
@@ -339,7 +363,10 @@
             if (productWizardData.croppieInstance) {
                 productWizardData.croppieInstance.result({
                     type: 'blob',
-                    size: { width: 500, height: 500 },
+                    size: {
+                        width: 500,
+                        height: 500
+                    },
                     format: 'png',
                     quality: 0.9
                 }).then(function(blob) {
@@ -418,10 +445,19 @@
             }
         }
 
-        // Show loading
+        // Show loading with progress bar
         Swal.fire({
-            title: 'Creating Product...',
-            html: '<div class="spinner-border text-primary" role="status"></div>',
+            title: 'Uploading Product...',
+            html: `
+                <div style="text-align:left; padding: 20px;">
+                    <div id="upload-progress-container" style="width:100%; margin-top:10px;">
+                        <div style="background:#e9ecef; border-radius:6px; overflow:hidden; height:20px;">
+                            <div id="upload-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg, #27ae60, #2ecc71); transition: width 0.3s ease;"></div>
+                        </div>
+                        <div id="upload-progress-text" style="margin-top:12px; font-size:14px; text-align:center; color:#34495e; font-weight:600;">Preparing upload... 0%</div>
+                    </div>
+                </div>
+            `,
             allowOutsideClick: false,
             showConfirmButton: false
         });
@@ -433,7 +469,20 @@
                 type: 'POST',
                 data: formData,
                 processData: false,
-                contentType: false
+                contentType: false,
+                xhr: function() {
+                    var xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(evt) {
+                        if (evt.lengthComputable) {
+                            var percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                            const bar = document.getElementById('upload-progress-bar');
+                            const text = document.getElementById('upload-progress-text');
+                            if (bar) bar.style.width = percentComplete + '%';
+                            if (text) text.textContent = `Uploading... ${percentComplete}%`;
+                        }
+                    }, false);
+                    return xhr;
+                }
             });
 
             console.log('Success response:', response);

@@ -45,6 +45,8 @@ class Payment extends Model
         'status',
         'billing_address',
         'shipping_address',
+        'recipient_name',
+        'recipient_contact',
         'payment_date',
     ];
 
