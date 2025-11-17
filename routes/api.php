@@ -12,13 +12,10 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:api');
 
-
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
 Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
-
-
 
 // Category routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -29,58 +26,53 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('products/search', [ProductController::class, 'search']);
     Route::apiResource('products', ProductController::class);
 
-
     // Cart routes
-        Route::get('cart', [CartController::class, 'index']);
-        Route::post('cart/add', [CartController::class, 'addToCart']);
-        Route::put('cart/{id}', [CartController::class, 'updateQuantity']);
-        Route::delete('cart/{id}', [CartController::class, 'removeItem']);
-        Route::delete('cart', [CartController::class, 'clearCart']);
-        Route::get('cart/count', [CartController::class, 'getCartCount']);
-
+    Route::get('cart', [CartController::class, 'index']);
+    Route::post('cart/add', [CartController::class, 'addToCart']);
+    Route::put('cart/{id}', [CartController::class, 'updateQuantity']);
+    Route::delete('cart/{id}', [CartController::class, 'removeItem']);
+    Route::delete('cart', [CartController::class, 'clearCart']);
+    Route::get('cart/count', [CartController::class, 'getCartCount']);
 
     // Payment Routes
-    //Process payment from cart
+    // Process payment from cart
     Route::post('/payment/process', [App\Http\Controllers\API\PaymentController::class, 'processPayment']);
     Route::get('/payment/{paymentId}', [App\Http\Controllers\API\PaymentController::class, 'getPayment']);
     Route::get('/payments/history', [App\Http\Controllers\API\PaymentController::class, 'getPaymentHistory']);
     Route::post('/payment/direct', [App\Http\Controllers\API\PaymentController::class, 'processDirectPayment']);
 
-
-    //profile routes
+    // profile routes
     Route::get('profile', [App\Http\Controllers\API\ProfileController::class, 'show']);
     Route::put('profile', [App\Http\Controllers\API\ProfileController::class, 'update']);
     Route::post('profile/image', [App\Http\Controllers\API\ProfileController::class, 'uploadProfileImage']);
     Route::delete('profile/image', [App\Http\Controllers\API\ProfileController::class, 'resetProfileImage']);
     Route::delete('profile', [App\Http\Controllers\API\ProfileController::class, 'destroy']);
 
-     Route::get('orders', [OrdersController::class, 'index']);
-     Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
-     Route::get('orders/{orderId}', [OrdersController::class, 'show']);
+    Route::get('orders', [OrdersController::class, 'index']);
+    Route::get('orders/stats', [OrdersController::class, 'getOrderStats']);
+    Route::get('orders/{orderId}', [OrdersController::class, 'show']);
 
-     // New Orders routes
-     Route::get('orders/by-payment', [OrdersController::class, 'getOrdersByPayment']);
-     Route::get('orders/statuses', [OrdersController::class, 'getStatuses']);
-     Route::get('orders/status/{status}', [OrdersController::class, 'getOrdersByStatus']);
-     Route::patch('orders/{orderId}/status', [OrdersController::class, 'updateStatus']);
-     Route::get('payments/{paymentId}/orders', [OrdersController::class, 'showPayment']);
-     Route::get('products/{productId}/orders', [OrdersController::class, 'getOrdersByProduct']);
+    // New Orders routes
+    Route::get('orders/by-payment', [OrdersController::class, 'getOrdersByPayment']);
+    Route::get('orders/statuses', [OrdersController::class, 'getStatuses']);
+    Route::get('orders/status/{status}', [OrdersController::class, 'getOrdersByStatus']);
+    Route::patch('orders/{orderId}/status', [OrdersController::class, 'updateStatus']);
+    Route::get('payments/{paymentId}/orders', [OrdersController::class, 'showPayment']);
+    Route::get('products/{productId}/orders', [OrdersController::class, 'getOrdersByProduct']);
 
     Route::apiResource('ratings', App\Http\Controllers\API\RatingController::class);
 });
-
-
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/device-token', function (Request $request) {
         $data = $request->validate([
             'token' => 'required|string',
             'device_type' => 'nullable|string|in:android,ios,web',
-            'timestamp' => 'nullable|date'
+            'timestamp' => 'nullable|date',
         ]);
 
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
@@ -92,11 +84,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/device-token', function (Request $request) {
         $data = $request->validate([
-            'token' => 'required|string'
+            'token' => 'required|string',
         ]);
 
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
@@ -107,7 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/device-token/refresh', function (Request $request) {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
@@ -116,9 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json([
             'success' => true,
             'message' => 'Token refresh completed',
-            'stale_tokens_removed' => $staleTokensRemoved
+            'stale_tokens_removed' => $staleTokensRemoved,
         ]);
     });
-
 
 });
