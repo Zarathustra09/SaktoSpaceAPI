@@ -376,7 +376,7 @@
                             <h5 class="mb-0"><i class="fas fa-image me-2"></i>Product Image</h5>
                         </div>
                         <div class="card-body text-center">
-                            <img src="{{ asset('storage/' . $order->product->image) }}" alt="{{ $order->product_name }}"
+                            <img src="{{ $order->product->image }}" alt="{{ $order->product_name }}"
                                 class="img-fluid rounded" style="max-height: 300px; object-fit: cover;">
                         </div>
                     </div>
