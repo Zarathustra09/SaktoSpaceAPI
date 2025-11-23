@@ -28,10 +28,25 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product): JsonResponse
+    public function show(Request $request, Product $product): View|JsonResponse
     {
-        $product->load('category', 'images');
-        return response()->json($product);
+        // Eager load relations needed for both view and edit wizard
+        $product->load([
+            'category',
+            'images',
+            'ratings.user',
+            'orders' // (view will still slice / format)
+        ]);
+
+        // If AJAX / JSON requested (edit wizard), return structured JSON with stats
+        if ($request->wantsJson() || $request->ajax()) {
+            $payload = $product->toArray();
+            $payload['stats'] = $product->salesStats();
+            return response()->json($payload);
+        }
+
+        // Normal browser navigation: render product overview page
+        return view('products.show', compact('product'));
     }
 
     /**

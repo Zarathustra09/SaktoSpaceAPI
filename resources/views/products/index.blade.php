@@ -51,7 +51,7 @@
                         </td>
                         <td>{{ $product->created_at->format('M d, Y') }}</td>
                         <td>
-                            <button class="btn btn-info btn-sm" onclick="viewProduct({{ $product->id }})">View</button>
+                            <a href="{{ route('products.show', $product->id) }}" class="btn btn-info btn-sm">View</a>
                             @if($product->ar_model_url)
                                 <button class="btn btn-primary btn-sm" onclick="viewArModel({{ $product->id }}, '{{ $product->ar_model_url }}', '{{ $product->name }}')">🥽 AR</button>
                             @endif

@@ -37,6 +37,13 @@
                     <span class="align-middle">Payments</span>
                 </a>
             </li>
+          <li class="sidebar-item {{ request()->routeIs('promotional-advertisements.*') ? 'active' : '' }}">
+              <a class="sidebar-link" href="{{ route('promotional-advertisements.index') }}">
+                  <i class="align-middle" data-feather="tag"></i>
+                  <span class="align-middle">Promotion</span>
+              </a>
+          </li>
+
             <li class="sidebar-header"> User Management </li>
             <li class="sidebar-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                 <a class="sidebar-link" href="{{route('users.index')}}">
