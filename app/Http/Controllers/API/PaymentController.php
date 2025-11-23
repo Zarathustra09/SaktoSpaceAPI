@@ -28,6 +28,12 @@
                'shipping_address' => 'required|string',
                'recipient_name' => 'nullable|string',
                'recipient_contact' => 'nullable|string',
+               'shipping_fee' => 'nullable|numeric|min:0',
+               'metadata' => 'nullable|array',
+               'metadata.shipping_type' => 'nullable|string',
+               'metadata.free_shipping' => 'nullable|boolean',
+               'metadata.gcash_number' => 'required_if:payment_method,GCash|nullable|string',
+               'metadata.gcash_reference' => 'required_if:payment_method,GCash|nullable|string',
            ]);
 
            if ($validator->fails()) {
@@ -50,10 +56,10 @@
                DB::beginTransaction();
 
                $transactionId = 'SKTO-' . mt_rand(100000000, 999999999);
-               $totalAmount = 0;
+               $subtotal = 0;
                $orderItems = [];
 
-               // Process cart items and calculate total
+               // Process cart items and calculate subtotal
                foreach ($cart->items as $item) {
                    $product = Product::find($item['product_id']);
                    if ($product) {
@@ -65,14 +71,14 @@
                            ], 400);
                        }
 
-                       $subtotal = $product->price * $item['quantity'];
-                       $totalAmount += $subtotal;
+                       $itemSubtotal = $product->price * $item['quantity'];
+                       $subtotal += $itemSubtotal;
 
                        $orderItems[] = [
                            'product_id' => $product->id,
                            'quantity' => $item['quantity'],
                            'price' => $product->price,
-                           'subtotal' => $subtotal,
+                           'subtotal' => $itemSubtotal,
                            'product_name' => $product->name,
                            'category_id' => $product->category_id,
                            'purchased_at' => now(),
@@ -86,18 +92,30 @@
                    }
                }
 
+               // Calculate total with shipping fee
+               $shippingFee = $request->shipping_fee ?? 0.00;
+               $totalAmount = $subtotal + $shippingFee;
+
+               // Determine payment status based on payment method
+               $paymentStatus = Payment::STATUS_COMPLETED;
+               if (strtolower($request->payment_method) === 'gcash') {
+                   $paymentStatus = Payment::STATUS_PENDING;
+               }
+
                // Create the payment record
                $payment = Payment::create([
                    'user_id' => $cart->user_id,
-                   'amount' => $totalAmount,
+                   'amount' => $subtotal,
+                   'shipping_fee' => $shippingFee,
                    'payment_method' => $request->payment_method,
                    'transaction_id' => $transactionId,
-                   'status' => $request->status ?? Payment::STATUS_COMPLETED,
+                   'status' => $paymentStatus,
                    'billing_address' => $request->billing_address,
                    'shipping_address' => $request->shipping_address,
                    'recipient_name' => $request->recipient_name ?? null,
                    'recipient_contact' => $request->recipient_contact ?? null,
                    'payment_date' => now(),
+                   'metadata' => $request->metadata ?? null,
                ]);
 
                // Create order records
@@ -122,8 +140,13 @@
                        'payment_id' => $payment->id,
                        'transaction_id' => $transactionId,
                        'amount' => $payment->amount,
-                        'recipient_name' => $payment->recipient_name,
-                        'recipient_contact' => $payment->recipient_contact,
+                       'shipping_fee' => $payment->shipping_fee,
+                       'total_amount' => $totalAmount,
+                       'payment_method' => $payment->payment_method,
+                       'status' => $payment->status,
+                       'recipient_name' => $payment->recipient_name,
+                       'recipient_contact' => $payment->recipient_contact,
+                       'metadata' => $payment->metadata,
                        'purchased_items' => $payment->purchased_items
                    ]
                ]);
@@ -196,6 +219,12 @@
                 'shipping_address' => 'required|string',
                 'recipient_name' => 'nullable|string',
                 'recipient_contact' => 'nullable|string',
+                'shipping_fee' => 'nullable|numeric|min:0',
+                'metadata' => 'nullable|array',
+                'metadata.shipping_type' => 'nullable|string',
+                'metadata.free_shipping' => 'nullable|boolean',
+                'metadata.gcash_number' => 'required_if:payment_method,GCash|nullable|string',
+                'metadata.gcash_reference' => 'required_if:payment_method,GCash|nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -226,20 +255,32 @@
                 }
 
                 $transactionId = 'SKTO-' . mt_rand(100000000, 999999999);
-                $totalAmount = $product->price * $request->quantity;
+                $subtotal = $product->price * $request->quantity;
+
+                // Calculate total with shipping fee
+                $shippingFee = $request->shipping_fee ?? 0.00;
+                $totalAmount = $subtotal + $shippingFee;
+
+                // Determine payment status based on payment method
+                $paymentStatus = Payment::STATUS_COMPLETED;
+                if (strtolower($request->payment_method) === 'gcash') {
+                    $paymentStatus = Payment::STATUS_PENDING;
+                }
 
                 // Create the payment record
                 $payment = Payment::create([
                     'user_id' => Auth::id(),
-                    'amount' => $totalAmount,
+                    'amount' => $subtotal,
+                    'shipping_fee' => $shippingFee,
                     'payment_method' => $request->payment_method,
                     'transaction_id' => $transactionId,
-                    'status' => $request->status ?? Payment::STATUS_COMPLETED,
+                    'status' => $paymentStatus,
                     'billing_address' => $request->billing_address,
                     'shipping_address' => $request->shipping_address,
-                       'recipient_name' => $request->recipient_name ?? null,
-                       'recipient_contact' => $request->recipient_contact ?? null,
+                    'recipient_name' => $request->recipient_name ?? null,
+                    'recipient_contact' => $request->recipient_contact ?? null,
                     'payment_date' => now(),
+                    'metadata' => $request->metadata ?? null,
                 ]);
 
                 // Create order record
@@ -248,7 +289,7 @@
                     'product_id' => $product->id,
                     'quantity' => $request->quantity,
                     'price' => $product->price,
-                    'subtotal' => $totalAmount,
+                    'subtotal' => $subtotal,
                     'product_name' => $product->name,
                     'category_id' => $product->category_id,
                     'purchased_at' => now(),
@@ -272,13 +313,18 @@
                         'payment_id' => $payment->id,
                         'transaction_id' => $transactionId,
                         'amount' => $payment->amount,
+                        'shipping_fee' => $payment->shipping_fee,
+                        'total_amount' => $totalAmount,
+                        'payment_method' => $payment->payment_method,
+                        'status' => $payment->status,
                         'recipient_name' => $payment->recipient_name,
                         'recipient_contact' => $payment->recipient_contact,
+                        'metadata' => $payment->metadata,
                         'product' => [
                             'name' => $product->name,
                             'quantity' => $request->quantity,
                             'unit_price' => $product->price,
-                            'total_price' => $totalAmount
+                            'total_price' => $subtotal
                         ],
                         'purchased_items' => $payment->purchased_items
                     ]

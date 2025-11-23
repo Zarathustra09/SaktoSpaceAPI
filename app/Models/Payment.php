@@ -13,9 +13,13 @@ class Payment extends Model
      * Payment status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_REFUNDED = 'refunded';
 
     /**
@@ -40,6 +44,7 @@ class Payment extends Model
     protected $fillable = [
         'user_id',
         'amount',
+        'shipping_fee',
         'payment_method',
         'transaction_id',
         'status',
@@ -48,6 +53,7 @@ class Payment extends Model
         'recipient_name',
         'recipient_contact',
         'payment_date',
+        'metadata',
     ];
 
     /**
@@ -57,7 +63,9 @@ class Payment extends Model
      */
     protected $casts = [
         'amount' => 'decimal:2',
+        'shipping_fee' => 'decimal:2',
         'payment_date' => 'datetime',
+        'metadata' => 'array',
     ];
 
     /**
