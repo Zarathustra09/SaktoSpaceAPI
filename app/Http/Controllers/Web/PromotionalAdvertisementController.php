@@ -41,6 +41,20 @@ class PromotionalAdvertisementController extends Controller
 
     public function show(PromotionalAdvertisement $promotionalAdvertisement)
     {
+        // Return JSON for AJAX requests, view for direct browser access
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'id' => $promotionalAdvertisement->id,
+                'title' => $promotionalAdvertisement->title,
+                'description' => $promotionalAdvertisement->description,
+                'image' => $promotionalAdvertisement->image,
+                'start_date' => $promotionalAdvertisement->start_date,
+                'end_date' => $promotionalAdvertisement->end_date,
+                'created_at' => $promotionalAdvertisement->created_at,
+                'updated_at' => $promotionalAdvertisement->updated_at,
+            ]);
+        }
+
         return view('promotional_advertisements.show', compact('promotionalAdvertisement'));
     }
 

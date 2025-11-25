@@ -94,25 +94,24 @@
     function editAd(id) {
         adWizard = { data:{}, croppieInstance:null, croppedBlob:null, mode:'edit', id:id };
         Swal.fire({ title:'Loading...', allowOutsideClick:false, showConfirmButton:false, html:'<div class="spinner-border text-primary"></div>' });
-        $.get('/promotional-advertisements/' + id, function(res) {
-            // expects blade view normally; we supply JSON route manually if needed
-            // Fallback parse: If HTML returned, abort wizard (user should implement JSON show route for AJAX)
-            try {
-                if (typeof res === 'object') {
-                    adWizard.data = {
-                        title: res.title,
-                        description: res.description,
-                        display_order: res.display_order,
-                        start_date: res.start_date,
-                        end_date: res.end_date,
-                        existing_image: res.image ? res.image : null
-                    };
-                }
-            } catch(e){}
-            Swal.close();
-            startAdWizard();
-        }).fail(() => {
-            Swal.fire('Error','Unable to load advertisement.','error');
+        $.ajax({
+            url: '/promotional-advertisements/' + id,
+            type: 'GET',
+            headers: { 'Accept': 'application/json' },
+            success: function(res) {
+                adWizard.data = {
+                    title: res.title || '',
+                    description: res.description || '',
+                    start_date: res.start_date || '',
+                    end_date: res.end_date || '',
+                    existing_image: res.image ? res.image : null
+                };
+                Swal.close();
+                startAdWizard();
+            },
+            error: function() {
+                Swal.fire('Error','Unable to load advertisement.','error');
+            }
         });
     }
 
@@ -369,15 +368,52 @@
             allowOutsideClick:false,
             html:'<div class="spinner-border text-primary"></div>'
         });
-        $.get('/promotional-advertisements/' + id, function(html) {
-            // If JSON needed, adapt; for now display raw HTML (server should render show view).
-            Swal.fire({
-                title:'Advertisement',
-                html: html,
-                width: '800px',
-                confirmButtonText:'Close'
-            });
-        }).fail(()=> Swal.fire('Error','Unable to load advertisement.','error'));
+
+        $.ajax({
+            url: '/promotional-advertisements/' + id,
+            type: 'GET',
+            headers: { 'Accept': 'application/json' },
+            success: function(ad) {
+                const imgDisplay = ad.image
+                    ? `<img src="/storage/${ad.image}" style="width:100%;max-width:400px;height:auto;object-fit:cover;border:3px solid #3498db;border-radius:8px;margin-top:15px;">`
+                    : '<div style="width:100%;max-width:400px;height:200px;background:#f8f9fa;border:2px dashed #dee2e6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6c757d;margin-top:15px;">No Image</div>';
+
+                Swal.fire({
+                    title: '👁️ ' + ad.title,
+                    width: '700px',
+                    html: `
+                        <div style="text-align:left;background:#f8f9fa;padding:20px;border-radius:10px;">
+                            <div style="margin-bottom:15px;">
+                                <strong style="color:#2c3e50;">Description:</strong>
+                                <p style="color:#7f8c8d;margin-top:5px;">${ad.description || 'No description provided'}</p>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+                                <div>
+                                    <strong style="color:#2c3e50;">Start Date:</strong>
+                                    <p style="color:#7f8c8d;margin-top:5px;">${ad.start_date ? formatDisplayDate(ad.start_date) : '—'}</p>
+                                </div>
+                                <div>
+                                    <strong style="color:#2c3e50;">End Date:</strong>
+                                    <p style="color:#7f8c8d;margin-top:5px;">${ad.end_date ? formatDisplayDate(ad.end_date) : '—'}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <strong style="color:#2c3e50;">Banner Image:</strong>
+                                <div style="text-align:center;">${imgDisplay}</div>
+                            </div>
+                            <div style="margin-top:15px;padding-top:15px;border-top:2px solid #dee2e6;">
+                                <small style="color:#95a5a6;">Created: ${formatDisplayDate(ad.created_at)}</small>
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'Close',
+                    confirmButtonColor: '#3498db'
+                });
+            },
+            error: function() {
+                Swal.fire('Error','Unable to load advertisement.','error');
+            }
+        });
     }
 
     function deleteAd(id) {
@@ -410,6 +446,14 @@
             showCloseButton:true,
             width:'70%'
         });
+    }
+
+    function formatDisplayDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
     }
 
     function formatForInput(dt) {
