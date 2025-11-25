@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 class UserDeviceToken extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id',
         'token',
@@ -25,13 +28,16 @@ class UserDeviceToken extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function getAllActiveTokens()
+    /**
+     * Get all active device tokens (updated within the last 30 days).
+     *
+     * @return array
+     */
+    public static function getAllActiveTokens(): array
     {
         return self::where('last_used_at', '>=', now()->subDays(30))
-                   ->pluck('token')
-                   ->unique()
-                   ->values()
-                   ->toArray();
+            ->pluck('token')
+            ->toArray();
     }
 
     public static function getActiveTokensByDeviceType($deviceType)
@@ -62,12 +68,19 @@ class UserDeviceToken extends Model
         return self::where('last_used_at', '<', $cutoffDate)->delete();
     }
 
-    // Touch tokens after a successful send
-    public static function touchTokens(array $tokens): int
+    /**
+     * Touch multiple tokens to update their last_used_at timestamp.
+     *
+     * @param array $tokens
+     * @return void
+     */
+    public static function touchTokens(array $tokens): void
     {
         if (empty($tokens)) {
-            return 0;
+            return;
         }
-        return self::whereIn('token', $tokens)->update(['last_used_at' => now()]);
+
+        self::whereIn('token', $tokens)
+            ->update(['last_used_at' => now()]);
     }
 }
