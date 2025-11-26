@@ -91,6 +91,56 @@
         padding: 1.5rem;
         text-align: center;
     }
+
+    /* Simple Pagination Styles */
+    .simple-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 2rem 0;
+    }
+
+    .simple-pagination .page-link {
+        color: #4B5563;
+        background-color: #fff;
+        border: 1px solid #E5E7EB;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .simple-pagination .page-link:hover {
+        background-color: #F3F4F6;
+        border-color: #D1D5DB;
+        color: #1F2937;
+    }
+
+    .simple-pagination .page-link.active {
+        background-color: #667eea;
+        border-color: #667eea;
+        color: white;
+    }
+
+    .simple-pagination .page-link.disabled {
+        color: #D1D5DB;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    .simple-pagination .page-link.disabled:hover {
+        background-color: #fff;
+        border-color: #E5E7EB;
+    }
+
+    .pagination-info {
+        text-align: center;
+        color: #6B7280;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
 </style>
 @endpush
 
@@ -293,10 +343,44 @@
         @endforelse
     </div>
 
-    <!-- Pagination -->
-    <div class="d-flex justify-content-center">
-        {{ $orders->links() }}
-    </div>
+    <!-- Simple Pagination -->
+    @if($orders->hasPages())
+        <div class="pagination-info">
+            Showing {{ $orders->firstItem() }} to {{ $orders->lastItem() }} of {{ $orders->total() }} orders
+        </div>
+        <div class="simple-pagination">
+            {{-- Previous Page Link --}}
+            @if ($orders->onFirstPage())
+                <span class="page-link disabled">
+                    <i class="fas fa-chevron-left"></i>
+                </span>
+            @else
+                <a href="{{ $orders->previousPageUrl() }}" class="page-link">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            @endif
+
+            {{-- Page Numbers --}}
+            @foreach ($orders->getUrlRange(1, $orders->lastPage()) as $page => $url)
+                @if ($page == $orders->currentPage())
+                    <span class="page-link active">{{ $page }}</span>
+                @else
+                    <a href="{{ $url }}" class="page-link">{{ $page }}</a>
+                @endif
+            @endforeach
+
+            {{-- Next Page Link --}}
+            @if ($orders->hasMorePages())
+                <a href="{{ $orders->nextPageUrl() }}" class="page-link">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            @else
+                <span class="page-link disabled">
+                    <i class="fas fa-chevron-right"></i>
+                </span>
+            @endif
+        </div>
+    @endif
 </div>
 
 <!-- Bulk Update Modal -->
