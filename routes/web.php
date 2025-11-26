@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Admin\UserAdminController;
+use App\Http\Controllers\Web\PromotionalAdvertisementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
     Route::resource('payments', PaymentController::class)->only(['index', 'show', 'update']);
     Route::resource('users', UserController::class)->only(['index', 'show']);
+    Route::resource('promotional-advertisements', PromotionalAdvertisementController::class)->except(['create', 'edit']);
 
     // Order Management Routes
     Route::resource('orders', OrderController::class)->only(['index', 'show']);

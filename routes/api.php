@@ -5,6 +5,7 @@ use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\OrdersController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\PromotionalAdvertisementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('products/{productId}/orders', [OrdersController::class, 'getOrdersByProduct']);
 
     Route::apiResource('ratings', App\Http\Controllers\API\RatingController::class);
+
+    Route::get('promotional-advertisements', [PromotionalAdvertisementController::class, 'index']);
+    Route::get('promotional-advertisements/{id}', [PromotionalAdvertisementController::class, 'show']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

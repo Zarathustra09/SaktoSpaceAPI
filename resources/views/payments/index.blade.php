@@ -6,6 +6,16 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h2 class="mb-0">💳 Payment History</h2>
                 <div class="d-flex gap-2">
+                    {{-- Period Filter --}}
+                    <select id="periodFilter" class="form-select" style="width:auto;">
+                        @php $currentPeriod = request('period'); @endphp
+                        <option value="" {{ !$currentPeriod ? 'selected' : '' }}>All Time</option>
+                        <option value="daily" {{ $currentPeriod === 'daily' ? 'selected' : '' }}>Daily</option>
+                        <option value="weekly" {{ $currentPeriod === 'weekly' ? 'selected' : '' }}>Weekly</option>
+                        <option value="monthly" {{ $currentPeriod === 'monthly' ? 'selected' : '' }}>Monthly</option>
+                        <option value="yearly" {{ $currentPeriod === 'yearly' ? 'selected' : '' }}>Yearly</option>
+                    </select>
+                    {{-- Existing status filter --}}
                     <select id="statusFilter" class="form-select" style="width: auto;">
                         <option value="">All Status</option>
                         <option value="completed">Completed</option>
@@ -13,12 +23,50 @@
                         <option value="failed">Failed</option>
                         <option value="refunded">Refunded</option>
                     </select>
-                    <button id="exportExcel" class="btn btn-success">
-                        📊 Export Excel
-                    </button>
+                    <button id="exportExcel" class="btn btn-success">📊 Export Excel</button>
                 </div>
             </div>
             <div class="card-body">
+                {{-- Sales Summary --}}
+                @isset($summary)
+                    <div class="mb-4 p-3 rounded" style="background:#f8f9fa; border:1px solid #e1e5eb;">
+                        <div class="d-flex flex-wrap gap-3 align-items-center">
+                            <div>
+                                <strong>🗓 Period:</strong>
+                                <span class="badge bg-primary">{{ $summary['period_label'] }}</span>
+                                @if($rangeStart)
+                                    <small class="text-muted d-block">
+                                        {{ $rangeStart->format('M d, Y') }} → {{ $rangeEnd->format('M d, Y') }}
+                                    </small>
+                                @endif
+                            </div>
+                            <div>
+                                <strong>💰 Total Payment Amount:</strong>
+                                <span class="text-success fw-bold">₱{{ number_format($summary['total_payment_amount'], 2) }}</span>
+                            </div>
+                            <div>
+                                <strong>📦 Gross Items Revenue:</strong>
+                                <span class="fw-bold">₱{{ number_format($summary['gross_items_revenue'], 2) }}</span>
+                            </div>
+                            <div>
+                                <strong>🚚 Shipping Fees:</strong>
+                                <span class="fw-bold">₱{{ number_format($summary['total_shipping_fees'], 2) }}</span>
+                            </div>
+                            <div>
+                                <strong>🧾 Payments:</strong>
+                                <span class="fw-bold">{{ $summary['total_payments'] }}</span>
+                            </div>
+                            <div>
+                                <strong>🛒 Items Sold:</strong>
+                                <span class="fw-bold">{{ $summary['total_items_sold'] }}</span>
+                            </div>
+                            <div>
+                                <strong>⚖️ Avg Order Value:</strong>
+                                <span class="fw-bold">₱{{ number_format($summary['average_order_value'], 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @endisset
                 <table id="paymentTable" class="table table-hover table-striped">
                     <thead class="thead-light">
                         <tr>
@@ -123,11 +171,25 @@
                 }
             });
 
+            // Period filter (reload page)
+            $('#periodFilter').on('change', function() {
+                const period = this.value;
+                const status = $('#statusFilter').val();
+                const params = new URLSearchParams();
+                if (period) params.set('period', period);
+                if (status) params.set('status', status); // keep status if desired for future use
+                window.location = '{{ route('payments.index') }}' + (params.toString() ? ('?' + params.toString()) : '');
+            });
+
             // Export respecting current status filter
             $('#exportExcel').on('click', function() {
                 const status = $('#statusFilter').val();
+                const period = $('#periodFilter').val();
                 const base = '{{ route('payments.export') }}';
-                const url = status ? `${base}?status=${encodeURIComponent(status)}` : base;
+                const params = [];
+                if (status) params.push('status=' + encodeURIComponent(status));
+                if (period) params.push('period=' + encodeURIComponent(period));
+                const url = params.length ? `${base}?${params.join('&')}` : base;
                 window.location.href = url;
             });
         });

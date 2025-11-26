@@ -18,16 +18,57 @@ use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\ApnsConfig;
 use Kreait\Firebase\Exception\MessagingException;
 use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
     /**
-     * Display a listing of the payments.
+     * Display a listing of the payments (with optional sales period filter).
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $payments = Payment::with(['user', 'orders'])->orderBy('payment_date', 'desc')->get();
-        return view('payments.index', compact('payments'));
+        $period = $request->query('period'); // daily | weekly | monthly | yearly | null
+        $rangeStart = null;
+
+        switch ($period) {
+            case 'daily':
+                $rangeStart = Carbon::today();
+                break;
+            case 'weekly':
+                $rangeStart = Carbon::now()->startOfWeek();
+                break;
+            case 'monthly':
+                $rangeStart = Carbon::now()->startOfMonth();
+                break;
+            case 'yearly':
+                $rangeStart = Carbon::now()->startOfYear();
+                break;
+            default:
+                $period = null;
+        }
+
+        $query = Payment::with(['user', 'orders'])->orderBy('payment_date', 'desc');
+        if ($rangeStart) {
+            $query->where('payment_date', '>=', $rangeStart);
+        }
+
+        $payments = $query->get();
+
+        // Aggregate sales metrics
+        $allOrders = $payments->flatMap(fn($p) => $p->orders);
+        $summary = [
+            'total_payments' => $payments->count(),
+            'total_items_sold' => (int) $allOrders->sum('quantity'),
+            'gross_items_revenue' => (float) $allOrders->sum('subtotal'),
+            'total_payment_amount' => (float) $payments->sum('amount'), // may include shipping
+            'total_shipping_fees' => (float) $payments->sum('shipping_fee'),
+            'average_order_value' => $payments->count() ? round($payments->sum('amount') / $payments->count(), 2) : 0.0,
+            'period_label' => $period ? ucfirst($period) : 'All Time',
+        ];
+
+        $rangeEnd = Carbon::now();
+
+        return view('payments.index', compact('payments', 'period', 'rangeStart', 'rangeEnd', 'summary'));
     }
 
     /**
@@ -119,75 +160,153 @@ class PaymentController extends Controller
     public function export(Request $request)
     {
         $status = $request->query('status');
+        $period = $request->query('period'); // daily|weekly|monthly|yearly|null
+        $rangeStart = null;
+
+        switch ($period) {
+            case 'daily':
+                $rangeStart = Carbon::today();
+                break;
+            case 'weekly':
+                $rangeStart = Carbon::now()->startOfWeek();
+                break;
+            case 'monthly':
+                $rangeStart = Carbon::now()->startOfMonth();
+                break;
+            case 'yearly':
+                $rangeStart = Carbon::now()->startOfYear();
+                break;
+            default:
+                $period = null;
+        }
 
         $query = Payment::with(['user', 'orders'])->orderBy('payment_date', 'desc');
         if (!empty($status)) {
             $query->where('status', $status);
         }
+        if ($rangeStart) {
+            $query->where('payment_date', '>=', $rangeStart);
+        }
         $payments = $query->get();
 
-        $export = new class($payments) implements
-            \Maatwebsite\Excel\Concerns\FromCollection,
-            \Maatwebsite\Excel\Concerns\WithHeadings,
-            \Maatwebsite\Excel\Concerns\WithMapping,
-            \Maatwebsite\Excel\Concerns\ShouldAutoSize,
-            \Maatwebsite\Excel\Concerns\WithStyles
+        // Sales summary
+        $allOrders = $payments->flatMap(fn($p) => $p->orders);
+        $summary = [
+            'period_label' => $period ? ucfirst($period) : 'All Time',
+            'range_start' => $rangeStart,
+            'range_end' => Carbon::now(),
+            'total_payments' => $payments->count(),
+            'total_items_sold' => (int) $allOrders->sum('quantity'),
+            'gross_items_revenue' => (float) $allOrders->sum('subtotal'),
+            'total_payment_amount' => (float) $payments->sum('amount'),
+            'total_shipping_fees' => (float) $payments->sum('shipping_fee'),
+            'average_order_value' => $payments->count() ? round($payments->sum('amount') / $payments->count(), 2) : 0.0,
+        ];
+
+        // Multi-sheet export (Summary + Payments)
+        $export = new class($summary, $payments) implements
+            \Maatwebsite\Excel\Concerns\WithMultipleSheets
         {
-            private $rows;
-
-            public function __construct($rows)
+            private $summary;
+            private $payments;
+            public function __construct($summary, $payments)
             {
-                $this->rows = $rows;
+                $this->summary = $summary;
+                $this->payments = $payments;
             }
-
-            public function collection()
+            public function sheets(): array
             {
-                return $this->rows;
-            }
+                $summarySheet = new class($this->summary) implements
+                    \Maatwebsite\Excel\Concerns\FromArray,
+                    \Maatwebsite\Excel\Concerns\WithTitle,
+                    \Maatwebsite\Excel\Concerns\ShouldAutoSize,
+                    \Maatwebsite\Excel\Concerns\WithStyles
+                {
+                    private $summary;
+                    public function __construct($summary) { $this->summary = $summary; }
+                    public function array(): array
+                    {
+                        return [
+                            ['Sales Summary'],
+                            ['Period', $this->summary['period_label']],
+                            ['Date Range Start', $this->summary['range_start'] ? $this->summary['range_start']->format('Y-m-d H:i:s') : 'N/A'],
+                            ['Date Range End', $this->summary['range_end']->format('Y-m-d H:i:s')],
+                            ['Total Payments', $this->summary['total_payments']],
+                            ['Total Items Sold', $this->summary['total_items_sold']],
+                            ['Gross Items Revenue', $this->summary['gross_items_revenue']],
+                            ['Total Payment Amount', $this->summary['total_payment_amount']],
+                            ['Total Shipping Fees', $this->summary['total_shipping_fees']],
+                            ['Average Order Value', $this->summary['average_order_value']],
+                        ];
+                    }
+                    public function title(): string { return 'Summary'; }
+                    public function styles(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet)
+                    {
+                        return [
+                            1 => ['font' => ['bold' => true, 'size' => 14]],
+                            2 => ['font' => ['bold' => true]],
+                        ];
+                    }
+                };
 
-            public function headings(): array
-            {
-                return [
-                    'Transaction ID',
-                    'User Name',
-                    'User Email',
-                    'Amount',
-                    'Payment Method',
-                    'Status',
-                    'Items Count',
-                    'Billing Address',
-                    'Shipping Address',
-                    'Payment Date',
-                    'Created At',
-                    'Updated At',
-                ];
-            }
+                $paymentsSheet = new class($this->payments) implements
+                    \Maatwebsite\Excel\Concerns\FromCollection,
+                    \Maatwebsite\Excel\Concerns\WithHeadings,
+                    \Maatwebsite\Excel\Concerns\WithMapping,
+                    \Maatwebsite\Excel\Concerns\ShouldAutoSize,
+                    \Maatwebsite\Excel\Concerns\WithStyles,
+                    \Maatwebsite\Excel\Concerns\WithTitle
+                {
+                    private $rows;
+                    public function __construct($rows) { $this->rows = $rows; }
+                    public function collection() { return $this->rows; }
+                    public function headings(): array
+                    {
+                        return [
+                            'Transaction ID',
+                            'User Name',
+                            'User Email',
+                            'Amount',
+                            'Payment Method',
+                            'Status',
+                            'Items Count',
+                            'Shipping Fee',
+                            'Payment Date',
+                            'Created At',
+                            'Updated At',
+                        ];
+                    }
+                    public function map($payment): array
+                    {
+                        return [
+                            $payment->transaction_id,
+                            optional($payment->user)->name ?? 'N/A',
+                            optional($payment->user)->email ?? 'N/A',
+                            (string) $payment->amount,
+                            (string) $payment->payment_method,
+                            (string) $payment->status,
+                            $payment->orders->count(),
+                            (string) $payment->shipping_fee,
+                            $payment->payment_date?->format('Y-m-d H:i:s') ?? '',
+                            $payment->created_at?->format('Y-m-d H:i:s') ?? '',
+                            $payment->updated_at?->format('Y-m-d H:i:s') ?? '',
+                        ];
+                    }
+                    public function styles(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet)
+                    {
+                        return [1 => ['font' => ['bold' => true]]];
+                    }
+                    public function title(): string { return 'Payments'; }
+                };
 
-            public function map($payment): array
-            {
-                return [
-                    $payment->transaction_id,
-                    optional($payment->user)->name ?? 'N/A',
-                    optional($payment->user)->email ?? 'N/A',
-                    (string) $payment->amount,
-                    (string) $payment->payment_method,
-                    (string) $payment->status,
-                    $payment->orders->count(),
-                    (string) ($payment->billing_address ?? ''),
-                    (string) ($payment->shipping_address ?? ''),
-                    $payment->payment_date ? $payment->payment_date->format('Y-m-d H:i:s') : '',
-                    $payment->created_at ? $payment->created_at->format('Y-m-d H:i:s') : '',
-                    $payment->updated_at ? $payment->updated_at->format('Y-m-d H:i:s') : '',
-                ];
-            }
-
-            public function styles(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet)
-            {
-                return [1 => ['font' => ['bold' => true]]];
+                return [$summarySheet, $paymentsSheet];
             }
         };
 
-        $filename = 'payments' . ($status ? "_{$status}" : '') . '_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+        $filename = 'payments_report' .
+            ($status ? "_status-{$status}" : '') .
+            ($period ? "_period-{$period}" : '') .
+            '_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
 
         return Excel::download($export, $filename);
     }

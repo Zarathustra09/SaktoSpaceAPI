@@ -77,4 +77,20 @@ class Product extends Model
      * NOTE: The primary image is stored on the product model itself (the 'image' attribute).
      * If you need a helper, return $this->image.
      */
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function salesStats()
+    {
+        return [
+            'orders_count' => $this->orders()->count(),
+            'units_sold' => (int) $this->orders()->sum('quantity'),
+            'revenue' => (float) $this->orders()->sum('subtotal'),
+            'average_rating' => (float) ($this->averageRating() ?? 0),
+            'rating_breakdown' => $this->getRatingBreakdown(),
+        ];
+    }
 }
