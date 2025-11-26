@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payment;
 use App\Models\Order;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -19,8 +19,8 @@ class OrdersController extends Controller
     public function index()
     {
         $orders = Order::whereHas('payment', function ($query) {
-                $query->where('user_id', Auth::id());
-            })
+            $query->where('user_id', Auth::id());
+        })
             ->with(['payment', 'product', 'category'])
             ->orderBy('created_at', 'desc')
             ->get()
@@ -41,6 +41,8 @@ class OrdersController extends Controller
                     'product' => $order->product,
                     'payment_status' => $order->payment->status,
                     'payment_method' => $order->payment->payment_method,
+                    'shipping_fee' => $order->payment->shipping_fee,
+                    'metadata' => $order->payment->metadata,
                     'recipient_name' => $order->payment->recipient_name,
                     'recipient_contact' => $order->payment->recipient_contact,
                     'purchased_at' => $order->purchased_at,
@@ -50,7 +52,7 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders
+            'data' => $orders,
         ]);
     }
 
@@ -70,6 +72,8 @@ class OrdersController extends Controller
                     'payment_id' => $payment->id,
                     'transaction_id' => $payment->transaction_id,
                     'total_amount' => $payment->amount,
+                    'shipping_fee' => $payment->shipping_fee,
+                    'metadata' => $payment->metadata,
                     'status' => $payment->status,
                     'payment_method' => $payment->payment_method,
                     'billing_address' => $payment->billing_address,
@@ -99,28 +103,28 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $payments
+            'data' => $payments,
         ]);
     }
 
     /**
      * Get a specific order for the authenticated user
      *
-     * @param int $orderId
+     * @param  int  $orderId
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($orderId)
     {
         $order = Order::whereHas('payment', function ($query) {
-                $query->where('user_id', Auth::id());
-            })
+            $query->where('user_id', Auth::id());
+        })
             ->with(['payment', 'product', 'category'])
             ->find($orderId);
 
-        if (!$order) {
+        if (! $order) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order not found'
+                'message' => 'Order not found',
             ], 404);
         }
 
@@ -140,6 +144,8 @@ class OrdersController extends Controller
             'product' => $order->product,
             'payment_status' => $order->payment->status,
             'payment_method' => $order->payment->payment_method,
+            'shipping_fee' => $order->payment->shipping_fee,
+            'metadata' => $order->payment->metadata,
             'billing_address' => $order->payment->billing_address,
             'shipping_address' => $order->payment->shipping_address,
             'recipient_name' => $order->payment->recipient_name,
@@ -150,36 +156,35 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orderData
+            'data' => $orderData,
         ]);
     }
 
     /**
      * Update order status (Admin only)
      *
-     * @param Request $request
-     * @param int $orderId
+     * @param  int  $orderId
      * @return \Illuminate\Http\JsonResponse
      */
     public function updateStatus(Request $request, $orderId)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:' . implode(',', Order::getStatuses()),
+            'status' => 'required|string|in:'.implode(',', Order::getStatuses()),
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $order = Order::find($orderId);
 
-        if (!$order) {
+        if (! $order) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order not found'
+                'message' => 'Order not found',
             ], 404);
         }
 
@@ -199,28 +204,28 @@ class OrdersController extends Controller
                 'status_updated_at' => $order->status_updated_at,
                 'product_name' => $order->product_name,
                 'transaction_id' => $order->payment->transaction_id,
-            ]
+            ],
         ]);
     }
 
     /**
      * Get orders by status
      *
-     * @param string $status
+     * @param  string  $status
      * @return \Illuminate\Http\JsonResponse
      */
     public function getOrdersByStatus($status)
     {
-        if (!in_array($status, Order::getStatuses())) {
+        if (! in_array($status, Order::getStatuses())) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid status'
+                'message' => 'Invalid status',
             ], 400);
         }
 
         $orders = Order::whereHas('payment', function ($query) {
-                $query->where('user_id', Auth::id());
-            })
+            $query->where('user_id', Auth::id());
+        })
             ->where('status', $status)
             ->with(['payment', 'product', 'category'])
             ->orderBy('created_at', 'desc')
@@ -240,6 +245,12 @@ class OrdersController extends Controller
                     'category_id' => $order->category_id,
                     'category_name' => $order->category?->name ?? 'Unknown',
                     'product' => $order->product,
+                    'payment_status' => $order->payment->status,
+                    'payment_method' => $order->payment->payment_method,
+                    'shipping_fee' => $order->payment->shipping_fee,
+                    'metadata' => $order->payment->metadata,
+                    'recipient_name' => $order->payment->recipient_name,
+                    'recipient_contact' => $order->payment->recipient_contact,
                     'purchased_at' => $order->purchased_at,
                     'created_at' => $order->created_at,
                 ];
@@ -247,7 +258,7 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders
+            'data' => $orders,
         ]);
     }
 
@@ -260,14 +271,14 @@ class OrdersController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => Order::getStatuses()
+            'data' => Order::getStatuses(),
         ]);
     }
 
     /**
      * Get a specific payment with all its orders for the authenticated user
      *
-     * @param int $paymentId
+     * @param  int  $paymentId
      * @return \Illuminate\Http\JsonResponse
      */
     public function showPayment($paymentId)
@@ -277,10 +288,10 @@ class OrdersController extends Controller
             ->with(['orders.product', 'orders.category'])
             ->first();
 
-        if (!$payment) {
+        if (! $payment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Payment not found'
+                'message' => 'Payment not found',
             ], 404);
         }
 
@@ -288,12 +299,14 @@ class OrdersController extends Controller
             'payment_id' => $payment->id,
             'transaction_id' => $payment->transaction_id,
             'total_amount' => $payment->amount,
+            'shipping_fee' => $payment->shipping_fee,
+            'metadata' => $payment->metadata,
             'status' => $payment->status,
             'payment_method' => $payment->payment_method,
             'billing_address' => $payment->billing_address,
             'shipping_address' => $payment->shipping_address,
-                'recipient_name' => $payment->recipient_name,
-                'recipient_contact' => $payment->recipient_contact,
+            'recipient_name' => $payment->recipient_name,
+            'recipient_contact' => $payment->recipient_contact,
             'payment_date' => $payment->payment_date,
             'orders' => $payment->orders->map(function ($order) {
                 return [
@@ -314,7 +327,7 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $paymentData
+            'data' => $paymentData,
         ]);
     }
 
@@ -358,21 +371,21 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $stats
+            'data' => $stats,
         ]);
     }
 
     /**
      * Get orders by product for the authenticated user
      *
-     * @param int $productId
+     * @param  int  $productId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getOrdersByProduct($productId)
     {
         $orders = Order::whereHas('payment', function ($query) {
-                $query->where('user_id', Auth::id());
-            })
+            $query->where('user_id', Auth::id());
+        })
             ->where('product_id', $productId)
             ->with(['payment', 'product', 'category'])
             ->orderBy('created_at', 'desc')
@@ -393,7 +406,7 @@ class OrdersController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders
+            'data' => $orders,
         ]);
     }
 }
