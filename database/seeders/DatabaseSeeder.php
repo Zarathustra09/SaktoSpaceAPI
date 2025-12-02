@@ -18,11 +18,14 @@ class DatabaseSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'Admin']);
 
         // Create the test user
-        $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('Test@123'),
-        ]);
+        $user = User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => bcrypt('Test@123'),
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Assign the Admin role to the test user
         $user->assignRole($adminRole);

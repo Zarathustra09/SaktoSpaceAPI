@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:80"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: host.docker.internal
+      DB_PORT: "3306"
+      DB_DATABASE: saktospace
+      DB_USERNAME: root
+      DB_PASSWORD: ""   # change if your local root has a password
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
